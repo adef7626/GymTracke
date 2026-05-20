@@ -214,7 +214,7 @@
     .toolbar-grid{
       display:grid;
       grid-template-columns:1fr;
-      gap:6px;
+      gap:10px;
       margin-top:6px;
     }
 
@@ -637,12 +637,17 @@
         </div>
 
         <div class="toolbar-grid">
-          <button id="btnGoToReset" class="btn btn-danger btn-sm">🧨 Reset all data</button>
+          <button id="btnExportData" class="btn btn-secondary btn-sm">⬇️ Export Data</button>
+          <button id="btnImportData" class="btn btn-secondary btn-sm">⬆️ Import Data</button>
+          <input type="file" id="importFileInput" accept="application/json" style="display:none;" />
         </div>
 
         <div class="reset-bar">
           <div class="reset-note">This clears all your logged workouts, custom exercises, body weight data and title.</div>
         </div>
+      </div>
+      <div style="margin-top:8px;">
+        <button id="btnGoToReset" class="btn btn-danger btn-sm" style="width:100%;">🧨 Reset all data</button>
       </div>
     </div>
 
@@ -786,8 +791,8 @@
         <div class="row">
           <div>
             <label for="exerciseSelect">Exercise</label>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <select id="exerciseSelect" style="margin-bottom:0;"></select>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+              <select id="exerciseSelect" style="margin-bottom:0;flex:1;min-width:0;"></select>
               <input id="newExerciseInput" type="text" placeholder="New exercise" style="max-width:130px;margin-bottom:0;display:none;">
               <button id="btnConfirmAddExercise" class="btn btn-secondary btn-sm icon-btn" title="Confirm new exercise" style="display:none;">✔</button>
               <button id="btnAddExercise" class="btn btn-secondary btn-sm icon-btn" title="Add new exercise">+</button>
@@ -1367,6 +1372,7 @@
         opt.value=item.name;
         opt.textContent=item.name;
         opt.dataset.type=item.type;
+        opt.dataset.inbuilt=(DEFAULT_EXERCISES[muscle] || []).some(x=>normalizeName(x.name)===normalizeName(item.name)) ? "1" : "0";
         exerciseSelect.appendChild(opt);
       });
       exerciseSelect.onchange=()=>{
@@ -2128,14 +2134,26 @@
       if(!selectedMuscle) return;
       const ex=exerciseSelect.value;
       if(!ex) return;
-      const base=(DEFAULT_EXERCISES[selectedMuscle]||[]).some(n=>normalizeName(n.name)===normalizeName(ex));
-      if(base) return;
       const list=customExercises[selectedMuscle]||[];
       const idx=list.findIndex(n=>normalizeName(n.name)===normalizeName(ex));
       if(idx===-1) return;
       list.splice(idx,1);
       customExercises[selectedMuscle]=list;
       saveCustomExercises();
+      loadExercisesForMuscle(selectedMuscle);
+      updateSuggestionText();
+      renderOverviewList();
+    }
+
+    function deleteBuiltInExercise(){
+      if(!selectedMuscle) return;
+      const ex=exerciseSelect.value;
+      const base = DEFAULT_EXERCISES[selectedMuscle] || [];
+      const idx = base.findIndex(n=>normalizeName(n.name)===normalizeName(ex));
+      if(idx===-1) return;
+      if(!confirm(`Remove built-in exercise: ${ex}?`)) return;
+      base.splice(idx,1);
+      DEFAULT_EXERCISES[selectedMuscle] = base;
       loadExercisesForMuscle(selectedMuscle);
       updateSuggestionText();
       renderOverviewList();
@@ -2175,6 +2193,54 @@
 
     function cancelReset(){ showView("view-muscles"); }
 
+    function exportAllData(){
+      const payload = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        storage: {
+          entries: JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'),
+          customExercises: JSON.parse(localStorage.getItem(CUSTOM_EXER_KEY) || '{}'),
+          headline: localStorage.getItem(HEADLINE_KEY) || '',
+          bodyweightEntries: JSON.parse(localStorage.getItem(BODYWEIGHT_KEY) || '[]')
+        }
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `workout-backup-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importAllData(file){
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const data = JSON.parse(reader.result);
+          const storage = data.storage || data;
+          if (storage.entries) localStorage.setItem(STORAGE_KEY, JSON.stringify(storage.entries));
+          if (storage.customExercises) localStorage.setItem(CUSTOM_EXER_KEY, JSON.stringify(storage.customExercises));
+          if (storage.headline !== undefined) localStorage.setItem(HEADLINE_KEY, storage.headline);
+          if (storage.bodyweightEntries) localStorage.setItem(BODYWEIGHT_KEY, JSON.stringify(storage.bodyweightEntries));
+          loadEntries();
+          loadCustomExercises();
+          loadBodyweightEntries();
+          loadHeadline();
+          initMuscleTabs();
+          if (selectedMuscle) {
+            document.querySelectorAll('.muscle-tab').forEach(t => t.classList.toggle('active', t.dataset.muscle === selectedMuscle));
+          }
+          alert('Import completed successfully.');
+          location.reload();
+        } catch (e) {
+          alert('Invalid import file.');
+        }
+      };
+      reader.readAsText(file);
+    }
+
     btnToggleHeadlineEdit.addEventListener("click",()=>{
       const vis=headlineEditRow.style.display==="flex";
       if(!vis){ headlineInput.value=headlineText.textContent.trim(); headlineEditRow.style.display="flex"; }
@@ -2197,6 +2263,9 @@
     btnGoToReset.addEventListener("click",goToResetPage);
     btnConfirmReset.addEventListener("click",confirmResetAll);
     btnCancelReset.addEventListener("click",cancelReset);
+    document.getElementById("btnExportData").addEventListener("click", exportAllData);
+    document.getElementById("btnImportData").addEventListener("click", ()=>document.getElementById("importFileInput").click());
+    document.getElementById("importFileInput").addEventListener("change", e=>importAllData(e.target.files[0]));
     btnDatewiseHistory.addEventListener("click",openDatewiseHistory);
     btnBackFromDateHistory.addEventListener("click",()=>showView("view-muscles"));
     dateHistoryInput.addEventListener("change",renderDatewiseHistory);
