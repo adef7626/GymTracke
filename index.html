@@ -599,7 +599,35 @@
       #view-muscles .toolbar-grid{margin-top:6px;}
     }
   </style>
-</head>
+<style>
+#view-workout .card{padding:6px;border-radius:12px;margin-bottom:6px}
+#view-workout .card-header{margin-bottom:2px}
+#view-workout .card-title{font-size:0.8rem}
+#view-workout .row{gap:4px;align-items:flex-start}
+#view-workout label{margin-bottom:2px;font-size:0.68rem}
+#view-workout select,#view-workout input{min-height:30px;padding:5px 7px;margin-bottom:3px;font-size:0.76rem;border-radius:7px}
+#view-workout .type-badge,#view-workout .small-text{font-size:0.64rem;line-height:1.1}
+#view-workout .sets-list{margin-top:2px;padding:4px;border-radius:8px}
+#view-workout .set-row{margin-bottom:3px;gap:3px}
+#view-workout .stats-row{gap:3px;margin-top:3px}
+#view-workout .stat{padding:5px;border-radius:7px}
+#view-workout .history-list{max-height:110px}
+#view-workout .chart-wrapper{display:none!important}
+#view-workout #cardHistory{display:none!important}
+#view-workout #btnSaveWorkout{margin-top:4px;min-height:32px}
+#view-workout #btnWorkoutComplete{margin-top:4px;min-height:30px}
+@media (max-width:640px){#view-workout .row{gap:3px}#view-workout .card{padding:5px}#view-workout .sets-list{padding:4px}}
+</style><style>
+#view-workout .card:first-of-type .card-header,
+#view-workout .card:nth-of-type(2) .card-header,
+#view-workout .card:nth-of-type(1) .row,
+#view-workout .card:nth-of-type(1) .top-bar{justify-content:center;text-align:center}
+#view-workout .card:nth-of-type(1) .row > div,#view-workout .card:nth-of-type(1) .row{align-items:center}
+#view-workout #currentMuscleLabel{margin-left:auto;margin-right:auto;text-align:center}
+#view-workout .card:nth-of-type(1) label{text-align:center}
+#view-workout .card:nth-of-type(1) select,#view-workout .card:nth-of-type(1) input{max-width:360px;margin-left:auto;margin-right:auto}
+#view-workout .card:nth-of-type(1) .type-badge{justify-content:center}
+</style></head>
 <body>
   <div class="app">
     <h1 id="headlineText">Dhruvish Adrenaline: All‑Out Mode</h1>
@@ -894,13 +922,11 @@
   </div>
 
   <script>
-    const muscles = ["Chest & Triceps","Back & Biceps","Abs","Legs","Shoulder","Cardio"];
+    const muscles = ["Chest & Triceps","Back & Biceps","Abs","Legs","Shoulder and Forearms","Cardio"];
     const DEFAULT_EXERCISES = {
       "Chest & Triceps":[
-        { name:"Flat Barbell Bench Press", type:"weighted" },
         { name:"Incline Dumbbell Press", type:"weighted" },
         { name:"Chest Fly Machine", type:"weighted" },
-        { name:"Chest Press", type:"weighted" },
         { name:"Push-ups", type:"bodyweight" },
         { name:"Chest Bench Press", type:"weighted" },
         { name:"Inclined Bench Press", type:"weighted" },
@@ -920,8 +946,6 @@
         { name:"Dumbbell Shrugs", type:"weighted" },
         { name:"Back Extension", type:"bodyweight" },
         { name:"Barbell Curl", type:"weighted" },
-        { name:"Dumbbell Curl", type:"weighted" },
-        { name:"Dumbbell Curls", type:"weighted" },
         { name:"Pitchers", type:"weighted" },
         { name:"Dumbbell Hammer", type:"weighted" },
         { name:"Zigzag Bar Curl", type:"weighted" }
@@ -943,13 +967,16 @@
         { name:"Lunges", type:"bodyweight" },
         { name:"Calf Raise", type:"bodyweight" }
       ],
-      "Shoulder":[
-        { name:"Overhead Shoulder Press", type:"weighted" },
+      "Shoulder and Forearms":[
+        { name:"Dumbbell Shoulder Press", type:"weighted" },
         { name:"Lateral Raise", type:"weighted" },
         { name:"Face Pull", type:"weighted" },
         { name:"Reverse Pec Deck", type:"weighted" },
         { name:"Shoulder Press", type:"weighted" },
-        { name:"Shoulder Raise", type:"weighted" }
+        { name:"Shoulder Raise", type:"weighted" },
+        { name:"Forearm Curl", type:"weighted" },
+        { name:"Reverse Wrist Curl", type:"weighted" },
+        { name:"Wrist Curl", type:"weighted" }
       ],
       "Cardio":[
         { name:"Treadmill", type:"cardio" },
@@ -1080,7 +1107,7 @@
           map.set(key,{ name, type:obj.type || inferExerciseType(name) });
         }
       });
-      return Array.from(map.values()).sort((a,b)=>a.name.localeCompare(b.name));
+      return Array.from(map.values()).sort((a,b)=>{const ga=(a.type||"weighted").localeCompare(b.type||"weighted"); return ga||a.name.localeCompare(b.name);});
     }
 
     function inferExerciseType(name){
