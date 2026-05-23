@@ -99,7 +99,7 @@
     <!-- STEP 2: Exercise Recap View -->
     <section id="view-overview" class="view">
       <div class="top-bar">
-        <button id="btnBackToMuscles" class="btn btn-secondary btn-sm">← Back to Battlefields</button>
+        <button id="btnBackToMuscles" class="btn btn-secondary btn-sm" title="Back to Battlefields">←</button>
         <span id="overviewMuscleLabel"></span>
       </div>
       
@@ -116,19 +116,19 @@
           Review historical sets logged for this muscle group. Tap the dumbbell log icon to enter the logging arena directly.
         </p>
 
-        <!-- Dynamic List of Logged Exercises -->
-        <div id="overviewList" style="display:flex;flex-direction:column;gap:12px;"></div>
-
-        <button id="btnSkipToLogging" class="btn btn-primary" style="margin-top:18px;width:100%;">
+        <button id="btnSkipToLogging" class="btn btn-primary" style="margin-bottom:18px;width:100%;">
           Skip Recap → Enter Workout Arena
         </button>
+
+        <!-- Dynamic List of Logged Exercises -->
+        <div id="overviewList" style="display:flex;flex-direction:column;gap:12px;"></div>
       </div>
     </section>
 
     <!-- STEP 3: Active Workout Logger View -->
     <section id="view-workout" class="view">
       <div class="top-bar">
-        <button id="btnBackToOverview" class="btn btn-secondary btn-sm">← Back to Recap</button>
+        <button id="btnBackToOverview" class="btn btn-secondary btn-sm" title="Back to Recap">←</button>
         <span id="currentMuscleLabel"></span>
         <button id="btnFocusMode" class="btn btn-secondary btn-sm" style="margin-left:auto;">🎯 Focus: Off</button>
       </div>
@@ -278,7 +278,7 @@
     <!-- FULL PAGE: Date-wise History View -->
     <section id="view-date-history" class="view">
       <div class="top-bar">
-        <button id="btnBackFromDateHistory" class="btn btn-secondary btn-sm">← Back</button>
+        <button id="btnBackFromDateHistory" class="btn btn-secondary btn-sm">←</button>
         <span>Full-page Date-wise Analytics</span>
       </div>
       
@@ -312,7 +312,7 @@
     <!-- FULL PAGE: Body Weight Tracker View -->
     <section id="view-bodyweight" class="view">
       <div class="top-bar">
-        <button id="btnBackFromBodyweight" class="btn btn-secondary btn-sm">← Back</button>
+        <button id="btnBackFromBodyweight" class="btn btn-secondary btn-sm" title="Back">←</button>
         <span>Body Weight Analytics</span>
       </div>
 
