@@ -1,0 +1,24 @@
+{
+  "name": "Dhruvish Adrenaline Workout PWA",
+  "short_name": "Adrenaline",
+  "description": "Premium, high-adrenaline Progressive Web App for tracking gym progress, progressive overload, and body stats.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#03040c",
+  "theme_color": "#03040c",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
