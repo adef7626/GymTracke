@@ -895,15 +895,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   font-size: 0.82rem;
 }
 
-/* Responsive Overrides - Hide chart and history panels on mobile viewports to prevent scrolling */
-@media (max-width: 640px) {
-  #view-workout #cardChart {
-    display: none !important;
-  }
-  #view-workout #cardHistory {
-    display: none !important;
-  }
-}
+/* History and charts are preserved at the bottom; users can scroll down if they wish to analyze them, or turn on Focus Mode to hide them. */
 
 /* ==========================================================================
    THEME SKIN CUSTOM OVERRIDES (ORANGE, ACID, SYNTHWAVE, STEALTH)
