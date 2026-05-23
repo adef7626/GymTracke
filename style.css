@@ -1091,3 +1091,99 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 .modal-close-btn:hover {
   color: var(--danger) !important;
 }
+
+/* Mobile landscape and compact viewport spacing compression for Step 3 */
+@media (max-width: 600px) {
+  #view-workout .card-header {
+    display: none !important;
+  }
+  
+  #view-workout .card {
+    padding: 8px 10px !important;
+    margin-bottom: 6px !important;
+    border-radius: var(--radius-sm) !important;
+  }
+  
+  #view-workout .row {
+    gap: 6px !important;
+    margin-top: 4px !important;
+  }
+  
+  #view-workout select, 
+  #view-workout input {
+    min-height: 28px !important;
+    padding: 4px 8px !important;
+    font-size: 0.8rem !important;
+    margin-bottom: 4px !important;
+  }
+  
+  #view-workout label {
+    font-size: 0.65rem !important;
+    margin-bottom: 2px !important;
+  }
+  
+  #view-workout #lastTrainedExercise {
+    font-size: 0.8rem !important;
+  }
+  
+  #view-workout #lastSessionSummary {
+    font-size: 0.68rem !important;
+    margin-top: 2px !important;
+  }
+  
+  #view-workout #suggestionSummary {
+    font-size: 0.68rem !important;
+    margin-top: 2px !important;
+  }
+  
+  #view-workout #exerciseTypeHint,
+  #view-workout #setsHelperText {
+    display: none !important;
+  }
+  
+  #view-workout .sets-list {
+    padding: 4px 6px !important;
+    margin-top: 4px !important;
+    gap: 4px !important;
+  }
+  
+  #view-workout .set-row {
+    gap: 4px !important;
+  }
+  
+  #view-workout .set-row > div {
+    margin-bottom: 0 !important;
+  }
+  
+  #view-workout .set-row input {
+    min-height: 26px !important;
+    padding: 4px 6px !important;
+    font-size: 0.78rem !important;
+  }
+  
+  #view-workout .set-delete-btn {
+    width: 26px !important;
+    height: 26px !important;
+    min-height: 26px !important;
+  }
+  
+  #view-workout #btnCopyLastSets,
+  #view-workout #btnAddSet {
+    min-height: 26px !important;
+    font-size: 0.75rem !important;
+    padding: 4px 8px !important;
+  }
+  
+  #view-workout #btnSaveWorkout {
+    min-height: 38px !important;
+    border-radius: var(--radius-sm) !important;
+    font-size: 0.85rem !important;
+    margin-top: 6px !important;
+    padding: 6px !important;
+  }
+  
+  #view-workout .top-bar {
+    padding: 2px 0 !important;
+    margin-bottom: 2px !important;
+  }
+}

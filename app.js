@@ -525,7 +525,7 @@ function rebuildExerciseSelect(preselectedName = null) {
   exercises.forEach(ex => {
     const opt = document.createElement("option");
     opt.value = ex.name;
-    opt.textContent = `${ex.name} [${ex.type}]`;
+    opt.textContent = ex.name;
     select.appendChild(opt);
   });
 
@@ -695,22 +695,7 @@ function appendSetRow(type, values = {}, setNum) {
   row.className = "set-row";
   row.dataset.setNum = setNum;
 
-  // 1. Tactile check-off button
-  const checkBtn = document.createElement("div");
-  checkBtn.className = "set-checkbox";
-  checkBtn.innerHTML = "✔";
-  checkBtn.addEventListener("click", (e) => {
-    triggerHaptic(10);
-    const isChecked = checkBtn.classList.toggle("checked");
-    row.classList.toggle("checked-row", isChecked);
-    
-    // Play Web Audio synth beep
-    triggerSetCompleteBeep();
-    
-    // Spawn CSS spark particle explosion
-    triggerExplosionAnimation(e.clientX || (window.innerWidth / 2), e.clientY || (window.innerHeight / 2));
-  });
-  row.appendChild(checkBtn);
+
 
   // Set counter badge
   const numDiv = document.createElement("div");
