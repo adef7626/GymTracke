@@ -2264,6 +2264,30 @@ document.addEventListener("DOMContentLoaded", () => {
       }, 300);
     }
   });
+
+  // Force Update / Reload cache binder
+  document.getElementById("btnForceReload")?.addEventListener("click", () => {
+    if (confirm("Force updating will clear the PWA cache and reload to fetch the latest cyberpunk upgrades directly from the network. Proceed?")) {
+      triggerHaptic([30, 30, 30]);
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          for (let registration of registrations) {
+            registration.unregister();
+          }
+        });
+      }
+      if ("caches" in window) {
+        caches.keys().then(names => {
+          for (let name of names) {
+            caches.delete(name);
+          }
+        });
+      }
+      setTimeout(() => {
+        window.location.reload(true);
+      }, 500);
+    }
+  });
 });
 
 // PWA Service Worker Registration
