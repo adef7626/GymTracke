@@ -52,14 +52,27 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+html {
+  background-color: var(--bg);
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+  min-height: 100%;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+}
+
 body {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background: var(--bg-gradient);
+  background-attachment: fixed;
   color: var(--text-main);
   display: flex;
   justify-content: center;
   overflow-x: hidden;
   padding: 20px 12px;
+  margin: 0;
 }
 
 /* Custom Premium Scrollbar */

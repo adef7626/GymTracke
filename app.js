@@ -319,7 +319,7 @@ function loadAllData() {
   
   // 6. Theme
   state.theme = localStorage.getItem("gym-tracker-theme") || "orange";
-  document.body.setAttribute("data-theme", state.theme);
+  document.documentElement.setAttribute("data-theme", state.theme);
   const themeSelect = document.getElementById("themeSelect");
   if (themeSelect) themeSelect.value = state.theme;
 
@@ -2175,7 +2175,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("themeSelect")?.addEventListener("change", (e) => {
     triggerHaptic(5);
     state.theme = e.target.value;
-    document.body.setAttribute("data-theme", state.theme);
+    document.documentElement.setAttribute("data-theme", state.theme);
     localStorage.setItem("gym-tracker-theme", state.theme);
   });
 
