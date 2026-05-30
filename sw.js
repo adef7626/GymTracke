@@ -1,10 +1,10 @@
 /**
  * ==========================================================================
- * DHRUVISH ADRENALINE - OFFLINE SERVICE WORKER
+ * ADRENALINE FORGE - OFFLINE SERVICE WORKER
  * ==========================================================================
  */
 
-const CACHE_NAME = "adrenaline-cache-v16";
+const CACHE_NAME = "adrenaline-cache-v24";
 
 const ASSETS_TO_CACHE = [
   "./",

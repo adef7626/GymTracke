@@ -1,6 +1,6 @@
 {
-  "name": "Dhruvish Adrenaline Workout PWA",
-  "short_name": "Adrenaline",
+  "name": "Adrenaline Forge PWA",
+  "short_name": "Adrenaline Forge",
   "description": "Premium, high-adrenaline Progressive Web App for tracking gym progress, progressive overload, and body stats.",
   "start_url": "./index.html",
   "display": "standalone",

@@ -1,6 +1,6 @@
 /**
  * ==========================================================================
- * DHRUVISH ADRENALINE - CORE APPLICATION LOGIC
+ * ADRENALINE FORGE - CORE APPLICATION LOGIC
  * ==========================================================================
  */
 
@@ -10,6 +10,87 @@ const CUSTOM_EXER_KEY = "gym-tracker-custom-exercises";
 const HEADLINE_KEY = "gym-tracker-headline";
 const BODYWEIGHT_KEY = "gym-tracker-bodyweight";
 const MODE_KEY = "gym-tracker-mode";
+const UNIT_KEY = "gym-tracker-unit";
+
+// IndexedDB Core Key-Value Helper
+const dbName = "adrenaline_forge_db";
+const storeName = "kv_store";
+
+function getDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(dbName, 1);
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore(storeName);
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+const db = {
+  async get(key) {
+    try {
+      const database = await getDB();
+      return new Promise((resolve, reject) => {
+        const transaction = database.transaction(storeName, "readonly");
+        const store = transaction.objectStore(storeName);
+        const req = store.get(key);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    } catch (e) {
+      console.warn("IndexedDB read failed, key:", key, e);
+      return null;
+    }
+  },
+  async set(key, value) {
+    try {
+      const database = await getDB();
+      return new Promise((resolve, reject) => {
+        const transaction = database.transaction(storeName, "readwrite");
+        const store = transaction.objectStore(storeName);
+        const req = store.put(value, key);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      });
+    } catch (e) {
+      console.warn("IndexedDB set failed, key:", key, e);
+    }
+  },
+  async remove(key) {
+    try {
+      const database = await getDB();
+      return new Promise((resolve, reject) => {
+        const transaction = database.transaction(storeName, "readwrite");
+        const store = transaction.objectStore(storeName);
+        const req = store.delete(key);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      });
+    } catch (e) {
+      console.warn("IndexedDB remove failed, key:", key, e);
+    }
+  }
+};
+
+// Asynchronous persistent getter with LocalStorage fallback / migration
+async function getPersistentItem(key, defaultValue) {
+  try {
+    const val = await db.get(key);
+    if (val !== undefined && val !== null) return val;
+  } catch (e) {
+    console.warn("IndexedDB persistent lookup failed, using local storage:", e);
+  }
+  // Fallback and migrate LocalStorage
+  const localVal = localStorage.getItem(key);
+  if (localVal !== null) {
+    let parsed = localVal;
+    try { parsed = JSON.parse(localVal); } catch {}
+    await db.set(key, parsed);
+    return parsed;
+  }
+  return defaultValue;
+}
 
 const MUSCLES = [
   "Chest",
@@ -210,12 +291,13 @@ let state = {
   entries: [],
   customExercises: {},
   bodyweightEntries: [],
-  headline: "Dhruvish Adrenaline: All‑Out Mode",
+  headline: "Adrenaline Forge: All‑Out Mode",
   mode: "normal",
   focusMode: false,
   chartInstance: null,
   theme: "orange",
-  synthPlaying: false
+  synthPlaying: false,
+  unit: "kg"
 };
 
 // Haptic & Visual Feedback Helpers
@@ -326,9 +408,8 @@ function inferExerciseType(name) {
 }
 
 function getAllExercisesForMuscle(muscle) {
-  const base = DEFAULT_EXERCISES[muscle] || [];
   const custom = state.customExercises[muscle] || [];
-  return dedupeExerciseObjects([...base, ...custom]);
+  return dedupeExerciseObjects(custom);
 }
 
 function normalizeSetsByType(sets, type) {
@@ -350,46 +431,52 @@ function normalizeSetsByType(sets, type) {
   return normalized.length ? normalized : defaultSetsByType(type);
 }
 
-// LocalStorage Synchronization
-function loadAllData() {
+// Asynchronous IndexedDB Storage Synchronization
+async function loadAllData() {
   // 1. Headline
-  state.headline = localStorage.getItem(HEADLINE_KEY) || "Dhruvish Adrenaline: All‑Out Mode";
+  state.headline = await getPersistentItem(HEADLINE_KEY, "Adrenaline Forge: All‑Out Mode");
   const headlineEl = document.getElementById("headlineText");
   if (headlineEl) headlineEl.textContent = state.headline;
 
   // 2. Training Mode
-  state.mode = localStorage.getItem(MODE_KEY) || "normal";
+  state.mode = await getPersistentItem(MODE_KEY, "normal");
   const modeSelect = document.getElementById("modeSelect");
   if (modeSelect) modeSelect.value = state.mode;
 
   // 3. Custom Exercises
-  try {
-    state.customExercises = JSON.parse(localStorage.getItem(CUSTOM_EXER_KEY) || "{}");
-  } catch {
-    state.customExercises = {};
+  state.customExercises = await getPersistentItem(CUSTOM_EXER_KEY, {});
+
+  // Populate/migrate default exercises into custom exercises if not done yet
+  const defaultsLoaded = await getPersistentItem("gym-tracker-defaults-loaded", null);
+  if (!defaultsLoaded) {
+    MUSCLES.forEach(m => {
+      if (!state.customExercises[m]) {
+        state.customExercises[m] = [];
+      }
+      const existingNames = new Set(state.customExercises[m].map(ex => normalizeName(ex.name)));
+      const defaults = DEFAULT_EXERCISES[m] || [];
+      defaults.forEach(defEx => {
+        if (!existingNames.has(normalizeName(defEx.name))) {
+          state.customExercises[m].push({ ...defEx });
+        }
+      });
+    });
+    await db.set("gym-tracker-defaults-loaded", "true");
   }
+
   MUSCLES.forEach(m => {
     state.customExercises[m] = dedupeExerciseObjects(state.customExercises[m] || []);
   });
 
   // 4. Bodyweight logs
-  try {
-    state.bodyweightEntries = JSON.parse(localStorage.getItem(BODYWEIGHT_KEY) || "[]");
-  } catch {
-    state.bodyweightEntries = [];
-  }
+  state.bodyweightEntries = await getPersistentItem(BODYWEIGHT_KEY, []);
   state.bodyweightEntries = state.bodyweightEntries
     .filter(item => item && item.date && Number(item.weight) > 0)
     .map(item => ({ date: item.date, weight: Number(item.weight) }))
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 
   // 5. Workout Logs
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    state.entries = raw ? JSON.parse(raw) : [];
-  } catch {
-    state.entries = [];
-  }
+  state.entries = await getPersistentItem(STORAGE_KEY, []);
 
   // Migrate and normalize workout records
   const renameMap = {
@@ -444,10 +531,16 @@ function loadAllData() {
   state.entries = Array.from(merged.values()).sort((a, b) => new Date(a.date) - new Date(b.date));
   
   // 6. Theme
-  state.theme = localStorage.getItem("gym-tracker-theme") || "orange";
+  state.theme = await getPersistentItem("gym-tracker-theme", "orange");
   document.documentElement.setAttribute("data-theme", state.theme);
   const themeSelect = document.getElementById("themeSelect");
   if (themeSelect) themeSelect.value = state.theme;
+
+  // 7. Global Weight Unit Switch
+  state.unit = await getPersistentItem(UNIT_KEY, "kg");
+  const unitSelect = document.getElementById("unitSelect");
+  if (unitSelect) unitSelect.value = state.unit;
+  updateUnitUI();
 
   saveAllData();
   updateAchievements();
@@ -457,13 +550,36 @@ function loadAllData() {
 }
 
 function saveAllData() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.entries));
-  localStorage.setItem(CUSTOM_EXER_KEY, JSON.stringify(state.customExercises));
-  localStorage.setItem(BODYWEIGHT_KEY, JSON.stringify(state.bodyweightEntries));
-  localStorage.setItem(HEADLINE_KEY, state.headline);
-  localStorage.setItem(MODE_KEY, state.mode);
-  localStorage.setItem("gym-tracker-theme", state.theme);
+  db.set(STORAGE_KEY, state.entries);
+  db.set(CUSTOM_EXER_KEY, state.customExercises);
+  db.set(BODYWEIGHT_KEY, state.bodyweightEntries);
+  db.set(HEADLINE_KEY, state.headline);
+  db.set(MODE_KEY, state.mode);
+  db.set("gym-tracker-theme", state.theme);
+  db.set(UNIT_KEY, state.unit);
+  
+  // Keep LocalStorage in sync as a secure background backup!
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.entries));
+    localStorage.setItem(CUSTOM_EXER_KEY, JSON.stringify(state.customExercises));
+    localStorage.setItem(BODYWEIGHT_KEY, JSON.stringify(state.bodyweightEntries));
+    localStorage.setItem(HEADLINE_KEY, state.headline);
+    localStorage.setItem(MODE_KEY, state.mode);
+    localStorage.setItem("gym-tracker-theme", state.theme);
+    localStorage.setItem(UNIT_KEY, state.unit);
+  } catch (e) {
+    console.warn("LocalStorage background backup failed:", e);
+  }
+
   updateAchievements();
+}
+
+function updateUnitUI() {
+  const lblBodyweight = document.getElementById("lblBodyweightUnit");
+  if (lblBodyweight) lblBodyweight.textContent = `Weight (${state.unit})`;
+  
+  const inputBodyweight = document.getElementById("bodyweightInput");
+  if (inputBodyweight) inputBodyweight.placeholder = `Enter weight in ${state.unit}`;
 }
 
 // Navigation & Screen View Controller
@@ -594,7 +710,7 @@ function initRecapView() {
 
       const meta = document.createElement("div");
       meta.className = "overview-meta";
-      meta.textContent = `Last Session: ${formatDate(latest.date)} (${latest.type})`;
+      meta.textContent = `Sessions: ${logs.length} • Last: ${formatDate(latest.date)} (${latest.type})`;
 
       const setsDesc = document.createElement("div");
       setsDesc.className = "overview-sets";
@@ -954,8 +1070,8 @@ function appendSetRow(type, values = {}, setNum) {
     // Weighted — Weight Dropdown
     const wDiv = document.createElement("div");
     const wLabel = document.createElement("label");
-    wLabel.textContent = "Weight (kg)";
-    const weightSelect = createStandardSelect("set-weight", STANDARD_WEIGHTS, values.weight, "kg");
+    wLabel.textContent = `Weight (${state.unit})`;
+    const weightSelect = createStandardSelect("set-weight", STANDARD_WEIGHTS, values.weight, state.unit);
     wDiv.appendChild(wLabel);
     wDiv.appendChild(weightSelect);
     row.appendChild(wDiv);
@@ -1094,15 +1210,15 @@ function refreshExerciseStats() {
   });
 
   if (best1RMEl) {
-    best1RMEl.textContent = type === "weighted" ? `${max1RM} kg` : "-";
+    best1RMEl.textContent = type === "weighted" ? `${max1RM} ${state.unit}` : "-";
   }
 
   if (volumeEl) {
-    volumeEl.textContent = type === "cardio" ? `${latestLog.totalTime} min` : (type === "bodyweight" ? `${latestLog.totalVolume} reps` : `${latestLog.totalVolume} kg`);
+    volumeEl.textContent = type === "cardio" ? `${latestLog.totalTime} min` : (type === "bodyweight" ? `${latestLog.totalVolume} reps` : `${latestLog.totalVolume} ${state.unit}`);
   }
 
   if (current1RMEl) {
-    current1RMEl.textContent = type === "weighted" ? `${latestLog.best1RM} kg` : "-";
+    current1RMEl.textContent = type === "weighted" ? `${latestLog.best1RM} ${state.unit}` : "-";
   }
 
   // Build visual workout summaries in text blocks
@@ -1115,8 +1231,8 @@ function refreshExerciseStats() {
       const repsString = latestLog.sets.map(s => s.reps).join("-");
       lastSessionSummary.textContent = `Sets: [${repsString}] (${latestLog.totalVolume} reps)`;
     } else {
-      const setStrings = latestLog.sets.map(s => `${s.weight}kgx${s.reps}`).join(", ");
-      lastSessionSummary.textContent = `Last: [${setStrings}] • Vol: ${latestLog.totalVolume}kg`;
+      const setStrings = latestLog.sets.map(s => `${s.weight}${state.unit}x${s.reps}`).join(", ");
+      lastSessionSummary.textContent = `Last: [${setStrings}] • Vol: ${latestLog.totalVolume}${state.unit}`;
     }
   }
 
@@ -1129,8 +1245,8 @@ function refreshExerciseStats() {
       suggestionSummary.textContent = `🎯 Aim for [${lastReps + 1}-${lastReps}-${lastReps}] reps to beat your past performance!`;
     } else {
       const topSet = latestLog.sets.sort((a,b) => b.weight - a.weight)[0];
-      const nextTargetWeight = topSet.weight + 2.5;
-      suggestionSummary.textContent = `🎯 Suggested overloading: Try ${nextTargetWeight}kg for ${Math.max(5, topSet.reps - 2)} reps!`;
+      const nextTargetWeight = topSet.weight + (state.unit === "kg" ? 2.5 : 5);
+      suggestionSummary.textContent = `🎯 Suggested overloading: Try ${nextTargetWeight}${state.unit} for ${Math.max(5, topSet.reps - 2)} reps!`;
     }
   }
 
@@ -1207,7 +1323,7 @@ function renderHistoryList(logs) {
       const setStrings = log.sets.map((s, idx) => `Set ${idx + 1}: ${s.reps} reps`).join("<br>");
       details.innerHTML = setStrings;
     } else {
-      const setStrings = log.sets.map((s, idx) => `Set ${idx + 1}: ${s.weight}kg x ${s.reps} reps (1RM ~${calculate1RM(s.weight, s.reps)}kg)`).join("<br>");
+      const setStrings = log.sets.map((s, idx) => `Set ${idx + 1}: ${s.weight}${state.unit} x ${s.reps} reps (1RM ~${calculate1RM(s.weight, s.reps)}${state.unit})`).join("<br>");
       details.innerHTML = setStrings;
     }
 
@@ -1722,16 +1838,17 @@ function deleteCustomExercise() {
 
   const selectedName = select.value;
   
-  // Check if it is a default or custom exercise
-  const defaults = DEFAULT_EXERCISES[state.selectedMuscle] || [];
-  const isDefault = defaults.some(ex => normalizeName(ex.name) === normalizeName(selectedName));
+  const hasHistory = state.entries.some(entry => 
+    entry.muscle === state.selectedMuscle && 
+    normalizeName(entry.exercise) === normalizeName(selectedName)
+  );
 
-  if (isDefault) {
-    alert("Standard exercises of the battlefield cannot be deleted. Custom exercises only!");
-    return;
+  let msg = `Permanently delete the exercise "${selectedName}" from your database? This will NOT delete past logs.`;
+  if (hasHistory) {
+    msg = `⚠️ WARNING: You have active workout logs in your history for "${selectedName}"!\n\nDeleting it will remove it from this selection dropdown, but your past logs will still remain. Do you want to proceed?`;
   }
 
-  if (!confirm(`Permanently delete the custom exercise "${selectedName}" from your database? This will NOT delete past logs.`)) {
+  if (!confirm(msg)) {
     return;
   }
 
@@ -1781,6 +1898,13 @@ function copyLastWorkoutSets() {
 function toggleFocusMode() {
   state.focusMode = !state.focusMode;
   triggerHaptic(5);
+
+  // Toggle focus-active body class for breathing ambient edge glow
+  if (state.focusMode) {
+    document.body.classList.add("focus-active");
+  } else {
+    document.body.classList.remove("focus-active");
+  }
 
   const focusBtn = document.getElementById("btnFocusMode");
   const hCard = document.getElementById("cardHistory");
@@ -2019,7 +2143,7 @@ function renderDatewiseHistory() {
         const setStrings = log.sets.map((s, idx) => `Set ${idx + 1}: ${s.reps} reps`).join("<br>");
         setsDiv.innerHTML = setStrings;
       } else {
-        const setStrings = log.sets.map((s, idx) => `Set ${idx + 1}: ${s.weight} kg x ${s.reps} reps`).join("<br>");
+        const setStrings = log.sets.map((s, idx) => `Set ${idx + 1}: ${s.weight} ${state.unit} x ${s.reps} reps`).join("<br>");
         setsDiv.innerHTML = setStrings;
       }
 
@@ -2077,20 +2201,20 @@ function renderBodyweightDashboard() {
   const latest = sorted[sorted.length - 1];
   const previous = sorted.length > 1 ? sorted[sorted.length - 2] : null;
 
-  latestEl.textContent = `${latest.weight} kg`;
+  latestEl.textContent = `${latest.weight} ${state.unit}`;
   
   if (previous) {
-    prevEl.textContent = `${previous.weight} kg`;
+    prevEl.textContent = `${previous.weight} ${state.unit}`;
     const diff = Math.round((latest.weight - previous.weight) * 10) / 10;
     
     if (diff > 0) {
-      changeEl.textContent = `+${diff} kg`;
+      changeEl.textContent = `+${diff} ${state.unit}`;
       changeEl.style.color = "var(--danger)"; // dynamic weight gain indicator
     } else if (diff < 0) {
-      changeEl.textContent = `${diff} kg`;
+      changeEl.textContent = `${diff} ${state.unit}`;
       changeEl.style.color = "var(--success)"; // weight loss indicator
     } else {
-      changeEl.textContent = "0.0 kg";
+      changeEl.textContent = `0.0 ${state.unit}`;
       changeEl.style.color = "var(--text-main)";
     }
   } else {
@@ -2103,7 +2227,7 @@ function renderBodyweightDashboard() {
   const subsetForAvg = sorted.slice(-7);
   const sumAvg = subsetForAvg.reduce((sum, item) => sum + item.weight, 0);
   const avgVal = Math.round((sumAvg / subsetForAvg.length) * 100) / 100;
-  avgEl.textContent = `${avgVal} kg`;
+  avgEl.textContent = `${avgVal} ${state.unit}`;
 
   // 2. Render Weights History Log
   const newestOnTop = [...state.bodyweightEntries].sort((a,b) => new Date(b.date) - new Date(a.date));
@@ -2122,7 +2246,7 @@ function renderBodyweightDashboard() {
     const weightValSpan = document.createElement("span");
     weightValSpan.style.fontWeight = "700";
     weightValSpan.style.color = "var(--cyan)";
-    weightValSpan.textContent = `${entry.weight} kg`;
+    weightValSpan.textContent = `${entry.weight} ${state.unit}`;
 
     const delBtn = document.createElement("button");
     delBtn.className = "set-delete-btn";
@@ -2247,7 +2371,7 @@ function cancelHeadlineTitle() {
 }
 
 // Reset Database Functions
-function confirmResetAllData() {
+async function confirmResetAllData() {
   triggerHaptic([100, 100, 100]);
   
   // Wipe all LocalStorage keys
@@ -2256,6 +2380,19 @@ function confirmResetAllData() {
   localStorage.removeItem(HEADLINE_KEY);
   localStorage.removeItem(BODYWEIGHT_KEY);
   localStorage.removeItem(MODE_KEY);
+  localStorage.removeItem("gym-tracker-theme");
+  localStorage.removeItem(UNIT_KEY);
+  localStorage.removeItem("gym-tracker-defaults-loaded");
+
+  // Wipe all IndexedDB keys
+  await db.remove(STORAGE_KEY);
+  await db.remove(CUSTOM_EXER_KEY);
+  await db.remove(HEADLINE_KEY);
+  await db.remove(BODYWEIGHT_KEY);
+  await db.remove(MODE_KEY);
+  await db.remove("gym-tracker-theme");
+  await db.remove(UNIT_KEY);
+  await db.remove("gym-tracker-defaults-loaded");
 
   // Re-initialize state
   state = {
@@ -2264,15 +2401,18 @@ function confirmResetAllData() {
     entries: [],
     customExercises: {},
     bodyweightEntries: [],
-    headline: "Dhruvish Adrenaline: All‑Out Mode",
+    headline: "Adrenaline Forge: All‑Out Mode",
     mode: "normal",
     focusMode: false,
-    chartInstance: null
+    chartInstance: null,
+    theme: "orange",
+    synthPlaying: false,
+    unit: "kg"
   };
 
   // Rebuild defaults
   saveAllData();
-  loadAllData();
+  await loadAllData();
   initApp();
   switchView("view-muscles");
 }
@@ -2282,7 +2422,7 @@ function exportWorkoutData() {
   triggerHaptic(10);
   
   const payload = {
-    app: "DhruvishAdrenaline",
+    app: "AdrenalineForge",
     version: "2.0.0",
     exportedAt: new Date().toISOString(),
     headline: state.headline,
@@ -2315,7 +2455,7 @@ function importWorkoutData(event) {
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = async function(e) {
     try {
       const parsed = JSON.parse(e.target.result);
       
@@ -2410,7 +2550,7 @@ function importWorkoutData(event) {
         state.entries = entriesToImport;
 
         saveAllData();
-        loadAllData();
+        await loadAllData();
         initApp();
         
         alert("Backups imported successfully!");
@@ -2596,7 +2736,6 @@ function renderExerciseManagerList(filterText = "") {
 
   MUSCLES.forEach(muscle => {
     const allExercises = getAllExercisesForMuscle(muscle);
-    const defaults = (DEFAULT_EXERCISES[muscle] || []).map(e => normalizeName(e.name));
     
     // Filter exercises
     const filtered = filter 
@@ -2653,9 +2792,9 @@ function renderExerciseManagerList(filterText = "") {
     });
 
     filtered.forEach(ex => {
-      const isDefault = defaults.includes(normalizeName(ex.name));
+      const isDefault = false;
       const item = document.createElement("div");
-      item.className = `ex-manager-item${isDefault ? " is-default" : ""}`;
+      item.className = "ex-manager-item";
       item.style.flexDirection = "column";
       item.style.alignItems = "stretch";
 
@@ -2749,11 +2888,35 @@ function renderExerciseManagerList(filterText = "") {
       const delBtn = document.createElement("button");
       delBtn.className = "btn btn-danger btn-sm";
       delBtn.innerHTML = "🗑";
-      delBtn.title = isDefault ? "Cannot delete default exercises" : "Delete custom exercise";
+      
+      const hasHistory = state.entries.some(entry => 
+        entry.muscle === muscle && 
+        normalizeName(entry.exercise) === normalizeName(ex.name)
+      );
+
+      if (hasHistory) {
+        delBtn.style.opacity = "0.35";
+        delBtn.title = "Delete exercise (Warning: has active history logs)";
+      } else {
+        delBtn.title = "Delete exercise";
+      }
+
       delBtn.addEventListener("click", (e) => {
         e.stopPropagation(); // Avoid triggering info toggle
         if (isDefault) return;
-        if (!confirm(`Delete "${ex.name}" from ${muscle}?`)) return;
+        
+        const hasHistory = state.entries.some(entry => 
+          entry.muscle === muscle && 
+          normalizeName(entry.exercise) === normalizeName(ex.name)
+        );
+        
+        let msg = `Delete "${ex.name}" from ${muscle}?`;
+        if (hasHistory) {
+          msg = `⚠️ WARNING: You have active workout logs in your history for "${ex.name}"!\n\nDeleting it from the library will remove it from the selector, but your past logs will still remain. Do you want to proceed?`;
+        }
+        
+        if (!confirm(msg)) return;
+        
         triggerHaptic(10);
         const customs = state.customExercises[muscle] || [];
         state.customExercises[muscle] = customs.filter(c => normalizeName(c.name) !== normalizeName(ex.name));
@@ -2835,9 +2998,9 @@ function initApp() {
 }
 
 // DOM Setup Binder
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   // Load data & set up tabs
-  loadAllData();
+  await loadAllData();
   initApp();
 
   // Automatically open native calendar picker when tapping anywhere on the date input
@@ -2897,6 +3060,14 @@ document.addEventListener("DOMContentLoaded", () => {
     state.theme = e.target.value;
     document.documentElement.setAttribute("data-theme", state.theme);
     localStorage.setItem("gym-tracker-theme", state.theme);
+  });
+
+  // Global Weight Unit Select binder
+  document.getElementById("unitSelect")?.addEventListener("change", (e) => {
+    triggerHaptic(5);
+    state.unit = e.target.value;
+    saveAllData();
+    updateUnitUI();
   });
 
   // Synthbeats procedural sequencer beats binder
@@ -3341,7 +3512,7 @@ function triggerSparklingAnimation(x, y) {
   
   for (let i = 0; i < particleCount; i++) {
     const spark = document.createElement("div");
-    spark.className = "spark-spark";
+    spark.className = "setting-spark";
     
     const color = colors[Math.floor(Math.random() * colors.length)];
     spark.style.background = color;
@@ -3363,7 +3534,7 @@ function triggerSparklingAnimation(x, y) {
     
     setTimeout(() => {
       spark.remove();
-    }, 500);
+    }, 1500);
   }
 }
 

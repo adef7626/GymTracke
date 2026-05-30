@@ -135,18 +135,29 @@ h1 {
   margin-bottom: 0;
 }
 
-/* View Control & Transitions */
+/* View Control & Transitions - slide, scale & blur entry */
+@keyframes viewSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.985);
+    filter: blur(3px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
 .view {
   display: none;
   opacity: 0;
-  transform: translateY(12px);
-  transition: opacity 0.35s ease, transform 0.35s ease;
+  transform: translateY(20px) scale(0.985);
 }
 
 .view.active {
   display: block;
-  opacity: 1;
-  transform: translateY(0);
+  animation: viewSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Glassmorphism Cards */
@@ -267,6 +278,10 @@ select:focus, input:focus {
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
   margin: 14px 0;
+}
+
+.muscle-tab:last-child {
+  grid-column: span 2;
 }
 
 .muscle-tab {
@@ -791,8 +806,33 @@ select:focus, input:focus {
   }
   
   .muscle-tabs {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
     gap: 8px;
+  }
+  
+  .muscle-tab {
+    padding: 10px 10px 10px 24px;
+    min-height: 48px;
+    border-radius: var(--radius-sm);
+  }
+  
+  .muscle-tab::before {
+    left: 10px;
+    width: 6px;
+    height: 6px;
+  }
+  
+  .muscle-name {
+    font-size: 0.8rem;
+  }
+  
+  .muscle-last {
+    font-size: 0.62rem;
+    margin-top: 1px;
+  }
+  
+  .muscle-tab:last-child {
+    grid-column: span 2;
   }
   
   .row {
@@ -877,7 +917,9 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   gap: 6px;
 }
 
-#view-workout .set-row input {
+#view-workout .set-row input,
+#view-workout .set-row select,
+#view-workout .set-row .custom-input-wrap input {
   min-height: 32px;
   padding: 6px 10px;
   font-size: 0.82rem;
@@ -1169,7 +1211,9 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     margin-bottom: 0 !important;
   }
   
-  #view-workout .set-row input {
+  #view-workout .set-row input,
+  #view-workout .set-row select,
+  #view-workout .set-row .custom-input-wrap input {
     min-height: 26px !important;
     padding: 4px 6px !important;
     font-size: 0.78rem !important;
@@ -1303,10 +1347,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   border-radius: var(--radius-sm);
 }
 
-.ex-manager-item.is-default .ex-actions .btn-danger {
-  opacity: 0.3;
-  pointer-events: none;
-}
+
 
 /* ================================================
    Date History Improved Layout
@@ -1491,6 +1532,9 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   .top-quick-actions button, .top-quick-actions select {
     width: 100% !important;
     margin: 0 !important;
+    padding: 4px 4px !important;
+    font-size: 0.72rem !important;
+    text-align: center !important;
   }
 }
 
@@ -1605,4 +1649,139 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 .cal-day.selected-day::after {
   background: #03040c !important;
   box-shadow: none !important;
+}
+
+/* ================================================
+   GTM PREMIUM CYBERPUNK ANIMATIONS SUITE
+   ================================================ */
+
+/* 1. Cyberpunk Title Glitch & Neon Pulse */
+@keyframes cyber-pulse {
+  0%, 100% {
+    text-shadow: 0 0 8px var(--accent-glow), 0 0 20px rgba(255, 255, 255, 0.05);
+  }
+  50% {
+    text-shadow: 0 0 18px var(--accent-glow), 0 0 35px var(--accent-glow);
+  }
+}
+@keyframes cyber-glitch {
+  0%, 94%, 98%, 100% {
+    transform: skew(0deg) translate(0);
+    text-shadow: 0 0 8px var(--accent-glow);
+  }
+  95% {
+    transform: skew(1.5deg) translate(-2px, 1px);
+    text-shadow: -2px 0 var(--cyan), 2px 0 #ff007f;
+  }
+  96% {
+    transform: skew(-1.5deg) translate(2px, -1px);
+    text-shadow: 2px 0 var(--cyan), -2px 0 #ff007f;
+  }
+  97% {
+    transform: skew(0deg) translate(0);
+  }
+}
+.cyber-header-glow {
+  animation: cyber-pulse 4s ease-in-out infinite, cyber-glitch 6s infinite;
+  display: inline-block;
+}
+
+/* 2. Conquest Streak Plasma Glow */
+@keyframes plasma-glow {
+  0%, 100% {
+    box-shadow: 0 0 15px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+  50% {
+    box-shadow: 0 0 28px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border-color: var(--accent-neon);
+    transform: translateY(-4px);
+  }
+}
+.stat.badge-active {
+  animation: plasma-glow 3s infinite ease-in-out !important;
+}
+
+/* 3. Focus Mode Edge-Glow Vignette */
+@keyframes focus-breath {
+  0%, 100% {
+    box-shadow: inset 0 0 15px var(--cyan-glow);
+  }
+  50% {
+    box-shadow: inset 0 0 35px rgba(0, 229, 255, 0.4);
+  }
+}
+body.focus-active {
+  animation: focus-breath 4s infinite ease-in-out;
+}
+
+/* 4. Settings Spark Gravity Physics */
+.setting-spark {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 10000;
+  animation: setting-gravity-fall 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+@keyframes setting-gravity-fall {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 1;
+  }
+  20% {
+    transform: translate3d(calc(var(--dx) * 0.4), calc(var(--dy) * 0.4 - 15px), 0) scale(1.15);
+  }
+  100% {
+    transform: translate3d(var(--dx), calc(var(--dy) + 300px), 0) scale(0.1);
+    opacity: 0;
+  }
+}
+
+/* 5. Muscle Tab Hover Border-Sweep Effect */
+.muscle-tab {
+  overflow: hidden;
+}
+.muscle-tab::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  box-sizing: border-box;
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+@keyframes border-sweep-anim {
+  0% {
+    clip-path: inset(0 0 95% 0);
+    border-color: var(--accent);
+  }
+  25% {
+    clip-path: inset(0 0 0 95%);
+    border-color: var(--accent);
+  }
+  50% {
+    clip-path: inset(95% 0 0 0);
+    border-color: var(--accent);
+  }
+  75% {
+    clip-path: inset(0 95% 0 0);
+    border-color: var(--accent);
+  }
+  100% {
+    clip-path: inset(0 0 95% 0);
+    border-color: var(--accent);
+  }
+}
+.muscle-tab:hover::after {
+  animation: border-sweep-anim 1.5s linear infinite;
+}
+.muscle-tab.active::after {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 10px var(--accent-glow) !important;
+  clip-path: none !important;
 }
