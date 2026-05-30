@@ -758,12 +758,16 @@ function initWorkoutLoggingView(preselectedExerciseName = null) {
   // Restore selector visibility and hide edit inputs
   const editExInput = document.getElementById("editExerciseInput");
   const exerciseSelect = document.getElementById("exerciseSelect");
+  const btnRename = document.getElementById("btnRenameExercise");
   const btnAdd = document.getElementById("btnAddExercise");
   const btnDel = document.getElementById("btnDeleteExercise");
 
   if (editExInput) {
     editExInput.style.display = "none";
     editExInput.value = "";
+  }
+  if (btnRename) {
+    btnRename.style.display = "none";
   }
   if (exerciseSelect) exerciseSelect.style.display = "block";
   if (btnAdd) btnAdd.style.display = "block";
@@ -1378,18 +1382,23 @@ function editPastEntry(log) {
     // Hide standard select controls, show inline text editor
     const editExInput = document.getElementById("editExerciseInput");
     const exerciseSelect = document.getElementById("exerciseSelect");
+    const btnRename = document.getElementById("btnRenameExercise");
     const btnAdd = document.getElementById("btnAddExercise");
     const btnDel = document.getElementById("btnDeleteExercise");
 
-    if (editExInput) {
-      editExInput.style.display = "block";
-      editExInput.value = log.exercise;
-      editExInput.focus();
-      editExInput.select();
+    if (exerciseSelect) {
+      exerciseSelect.style.display = "block";
+      exerciseSelect.value = log.exercise;
     }
-    if (exerciseSelect) exerciseSelect.style.display = "none";
-    if (btnAdd) btnAdd.style.display = "none";
-    if (btnDel) btnDel.style.display = "none";
+    if (editExInput) {
+      editExInput.style.display = "none";
+      editExInput.value = log.exercise;
+    }
+    if (btnRename) {
+      btnRename.style.display = "block";
+    }
+    if (btnAdd) btnAdd.style.display = "block";
+    if (btnDel) btnDel.style.display = "block";
 
     const btnSave = document.getElementById("btnSaveWorkout");
     if (btnSave) {
@@ -1669,10 +1678,12 @@ function saveWorkoutEntry() {
     return;
   }
 
-  // Read edited exercise name from text input if in editing mode
+  // Read edited exercise name from text input if activated, otherwise read from standard select dropdown
   if (state.isEditing) {
     const editInput = document.getElementById("editExerciseInput");
-    if (editInput && editInput.value.trim()) {
+    const exerciseSelect = document.getElementById("exerciseSelect");
+    
+    if (editInput && editInput.style.display !== "none" && editInput.value.trim()) {
       const newName = editInput.value.trim();
       const oldName = state.originalEditingExercise || state.selectedExercise;
       
@@ -1716,6 +1727,9 @@ function saveWorkoutEntry() {
           }
         }
       }
+    } else if (exerciseSelect) {
+      // User kept the dropdown or selected a different exercise from the dropdown
+      state.selectedExercise = exerciseSelect.value;
     }
   }
 
@@ -3218,6 +3232,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("btnConfirmAddExercise")?.addEventListener("click", confirmAddExercise);
   document.getElementById("btnDeleteExercise")?.addEventListener("click", deleteCustomExercise);
   document.getElementById("exerciseSelect")?.addEventListener("change", handleExerciseChange);
+  
+  // Rename selected exercise toggle button
+  document.getElementById("btnRenameExercise")?.addEventListener("click", () => {
+    triggerHaptic(5);
+    const exerciseSelect = document.getElementById("exerciseSelect");
+    const editExInput = document.getElementById("editExerciseInput");
+    const btnRename = document.getElementById("btnRenameExercise");
+    
+    if (exerciseSelect && editExInput && btnRename) {
+      exerciseSelect.style.display = "none";
+      editExInput.style.display = "block";
+      editExInput.value = exerciseSelect.value;
+      editExInput.focus();
+      editExInput.select();
+      btnRename.style.display = "none";
+    }
+  });
   document.getElementById("exerciseTypeSelect")?.addEventListener("change", (e) => {
     triggerHaptic(5);
     const newType = e.target.value;
@@ -3619,7 +3650,7 @@ function triggerExplosionAnimation(x, y) {
 }
 
 function triggerSparklingAnimation(x, y) {
-  const colors = ["#ffffff", "#ffea79", "#ffaa33", "#ff5500", "#e62200"];
+  const colors = ["#ff5500", "#ff7300", "#ffaa00", "#e63900", "#ff3c00"];
   const particleCount = 36; // Denser angle-grinder spark shower!
   const container = document.body;
   
@@ -3630,32 +3661,40 @@ function triggerSparklingAnimation(x, y) {
       wrap.className = "setting-spark-wrap";
       
       // Angle increments progressively to create a spinning spiral emitter effect!
-      const spinAngle = (i * (Math.PI * 2 / 12)) + (Math.random() * 0.4);
-      const velocity = 90 + Math.random() * 130; // High speed ejection
+      const spinAngle = (i * (Math.PI * 2 / 18)) + (Math.random() * 0.3);
+      const velocity = 150 + Math.random() * 200; // Ultra high-speed explosive spray!
       const dx = Math.cos(spinAngle) * velocity;
       const dy = Math.sin(spinAngle) * velocity;
       
-      // Parabolic horizontal drift (sideways wind curvature)
-      const drift = (Math.random() - 0.5) * 80;
+      // Parabolic horizontal drift (sideways air curve)
+      const drift = (Math.random() - 0.5) * 120;
       
-      // Face the travel direction (adding 90deg since it is a vertical element)
-      const rad = spinAngle + Math.PI / 2;
+      // Gravity drop distance
+      const g = 250;
+      
+      // Start and End vector math to steer (rotate) the streak along the parabolic path
+      const vx_final = dx * 0.95 + drift;
+      const vy_final = dy + g;
+      const radStart = spinAngle + Math.PI / 2;
+      const radEnd = Math.atan2(vy_final, vx_final) + Math.PI / 2;
       
       wrap.style.left = `${x}px`;
       wrap.style.top = `${y}px`;
       wrap.style.setProperty("--dx", `${dx}px`);
       wrap.style.setProperty("--dy", `${dy}px`);
       wrap.style.setProperty("--drift", `${drift}px`);
+      wrap.style.setProperty("--g", `${g}px`);
 
       const core = document.createElement("div");
       core.className = "setting-spark-core";
       
       const color = colors[Math.floor(Math.random() * colors.length)];
       
-      // Set custom CSS properties to drive the GPU-accelerated curved, sputtering pop keyframe animation!
+      // Set custom CSS variables to feed the GPU-accelerated steering and sputtering keyframes!
       core.style.setProperty("--color", color);
-      core.style.setProperty("--rad", `${rad}rad`);
-      core.style.setProperty("--scale-y", `${1.2 + Math.random() * 1.6}`);
+      core.style.setProperty("--rad-start", `${radStart}rad`);
+      core.style.setProperty("--rad-end", `${radEnd}rad`);
+      core.style.setProperty("--scale-y", `${1.4 + Math.random() * 1.8}`); // Physically stretched streaks
       
       wrap.appendChild(core);
       container.appendChild(wrap);
