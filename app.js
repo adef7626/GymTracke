@@ -12,39 +12,49 @@ const BODYWEIGHT_KEY = "gym-tracker-bodyweight";
 const MODE_KEY = "gym-tracker-mode";
 
 const MUSCLES = [
-  "Chest & Triceps",
-  "Back & Biceps",
+  "Chest",
+  "Triceps",
+  "Back",
+  "Biceps",
   "Abs",
   "Legs",
-  "Shoulder and Forearms",
+  "Shoulder",
+  "Forearms",
   "Cardio"
 ];
 
+const STANDARD_WEIGHTS = [2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90, 100];
+const STANDARD_REPS = [5, 10, 15, 19, 20, 25, 30];
+
 const DEFAULT_EXERCISES = {
-  "Chest & Triceps": [
-    { name: "Incline Dumbbell Press", type: "weighted" },
+  "Chest": [
+    { name: "Incline Press (Dumbbell)", type: "weighted" },
     { name: "Chest Fly Machine", type: "weighted" },
     { name: "Push-ups", type: "bodyweight" },
     { name: "Chest Bench Press", type: "weighted" },
     { name: "Inclined Bench Press", type: "weighted" },
-    { name: "Dumbbell Fly", type: "weighted" },
+    { name: "Fly (Dumbbell)", type: "weighted" }
+  ],
+  "Triceps": [
     { name: "Tricep Pushdown", type: "weighted" },
     { name: "Overhead Tricep Extension", type: "weighted" },
     { name: "Triceps Extension", type: "weighted" },
     { name: "Rope Pushdown", type: "weighted" },
     { name: "Dips", type: "bodyweight" }
   ],
-  "Back & Biceps": [
+  "Back": [
     { name: "Lat Pulldown", type: "weighted" },
     { name: "Seated Row", type: "weighted" },
     { name: "Deadlift", type: "weighted" },
     { name: "Pull-ups", type: "bodyweight" },
     { name: "Single Arm Rowing", type: "weighted" },
-    { name: "Dumbbell Shrugs", type: "weighted" },
-    { name: "Back Extension", type: "bodyweight" },
-    { name: "Barbell Curl", type: "weighted" },
+    { name: "Shrugs (Dumbbell)", type: "weighted" },
+    { name: "Back Extension", type: "bodyweight" }
+  ],
+  "Biceps": [
+    { name: "Curl (Barbell)", type: "weighted" },
     { name: "Pitchers", type: "weighted" },
-    { name: "Dumbbell Hammer", type: "weighted" },
+    { name: "Hammer Curl (Dumbbell)", type: "weighted" },
     { name: "Zigzag Bar Curl", type: "weighted" }
   ],
   "Abs": [
@@ -64,13 +74,15 @@ const DEFAULT_EXERCISES = {
     { name: "Lunges", type: "bodyweight" },
     { name: "Calf Raise", type: "bodyweight" }
   ],
-  "Shoulder and Forearms": [
-    { name: "Dumbbell Shoulder Press", type: "weighted" },
+  "Shoulder": [
+    { name: "Shoulder Press (Dumbbell)", type: "weighted" },
     { name: "Lateral Raise", type: "weighted" },
     { name: "Face Pull", type: "weighted" },
     { name: "Reverse Pec Deck", type: "weighted" },
     { name: "Shoulder Press", type: "weighted" },
-    { name: "Shoulder Raise", type: "weighted" },
+    { name: "Shoulder Raise", type: "weighted" }
+  ],
+  "Forearms": [
     { name: "Forearm Curl", type: "weighted" },
     { name: "Reverse Wrist Curl", type: "weighted" },
     { name: "Wrist Curl", type: "weighted" }
@@ -83,6 +95,113 @@ const DEFAULT_EXERCISES = {
     { name: "Rowing", type: "cardio" }
   ]
 };
+
+// Migration maps for splitting old combined muscle groups and renaming exercises
+const EXERCISE_NAME_MIGRATION = {
+  "Incline Dumbbell Press": "Incline Press (Dumbbell)",
+  "Dumbbell Fly": "Fly (Dumbbell)",
+  "Dumbbell Shrugs": "Shrugs (Dumbbell)",
+  "Dumbbell Hammer": "Hammer Curl (Dumbbell)",
+  "Dumbbell Shoulder Press": "Shoulder Press (Dumbbell)",
+  "Barbell Curl": "Curl (Barbell)"
+};
+
+// Maps exercise names (old and new) to their correct new muscle group
+const EXERCISE_TO_NEW_MUSCLE = {
+  "Incline Dumbbell Press": "Chest", "Incline Press (Dumbbell)": "Chest",
+  "Chest Fly Machine": "Chest",
+  "Push-ups": "Chest",
+  "Chest Bench Press": "Chest",
+  "Inclined Bench Press": "Chest",
+  "Dumbbell Fly": "Chest", "Fly (Dumbbell)": "Chest",
+  "Tricep Pushdown": "Triceps",
+  "Overhead Tricep Extension": "Triceps",
+  "Triceps Extension": "Triceps",
+  "Rope Pushdown": "Triceps",
+  "Dips": "Triceps",
+  "Lat Pulldown": "Back",
+  "Seated Row": "Back",
+  "Deadlift": "Back",
+  "Pull-ups": "Back",
+  "Single Arm Rowing": "Back",
+  "Dumbbell Shrugs": "Back", "Shrugs (Dumbbell)": "Back",
+  "Back Extension": "Back",
+  "Barbell Curl": "Biceps", "Curl (Barbell)": "Biceps",
+  "Pitchers": "Biceps",
+  "Dumbbell Hammer": "Biceps", "Hammer Curl (Dumbbell)": "Biceps",
+  "Zigzag Bar Curl": "Biceps",
+  "Dumbbell Shoulder Press": "Shoulder", "Shoulder Press (Dumbbell)": "Shoulder",
+  "Lateral Raise": "Shoulder",
+  "Face Pull": "Shoulder",
+  "Reverse Pec Deck": "Shoulder",
+  "Shoulder Press": "Shoulder",
+  "Shoulder Raise": "Shoulder",
+  "Forearm Curl": "Forearms",
+  "Reverse Wrist Curl": "Forearms",
+  "Wrist Curl": "Forearms"
+};
+
+function migrateMuscleSplit() {
+  const OLD_GROUPS = ["Chest & Triceps", "Back & Biceps", "Shoulder and Forearms"];
+  let needsSave = false;
+
+  // Migrate workout entries
+  state.entries.forEach(entry => {
+    // Rename exercise names (Dumbbell/Barbell to end)
+    if (EXERCISE_NAME_MIGRATION[entry.exercise]) {
+      entry.exercise = EXERCISE_NAME_MIGRATION[entry.exercise];
+      needsSave = true;
+    }
+    // Split old combined muscle groups into individual ones
+    if (OLD_GROUPS.includes(entry.muscle)) {
+      const newMuscle = EXERCISE_TO_NEW_MUSCLE[entry.exercise];
+      if (newMuscle) {
+        entry.muscle = newMuscle;
+        needsSave = true;
+      } else if (entry.exercise === "__muscle_complete__") {
+        // For completion markers, we can't determine which sub-group, remove them
+        entry.muscle = entry.muscle; // keep as-is, will be cleaned up
+        needsSave = true;
+      }
+    }
+  });
+
+  // Remove orphaned completion markers for old combined groups
+  state.entries = state.entries.filter(e => {
+    if (e.exercise === "__muscle_complete__" && OLD_GROUPS.includes(e.muscle)) return false;
+    return true;
+  });
+
+  // Migrate custom exercises from old groups to new groups
+  OLD_GROUPS.forEach(oldGroup => {
+    if (state.customExercises[oldGroup] && state.customExercises[oldGroup].length > 0) {
+      state.customExercises[oldGroup].forEach(ex => {
+        const newName = EXERCISE_NAME_MIGRATION[ex.name] || ex.name;
+        const newMuscle = EXERCISE_TO_NEW_MUSCLE[ex.name] || EXERCISE_TO_NEW_MUSCLE[newName];
+        if (newMuscle) {
+          if (!state.customExercises[newMuscle]) state.customExercises[newMuscle] = [];
+          state.customExercises[newMuscle].push({ ...ex, name: newName });
+        }
+      });
+      delete state.customExercises[oldGroup];
+      needsSave = true;
+    }
+  });
+
+  // Also rename exercise names in custom exercises for all groups
+  Object.keys(state.customExercises).forEach(muscle => {
+    if (state.customExercises[muscle]) {
+      state.customExercises[muscle].forEach(ex => {
+        if (EXERCISE_NAME_MIGRATION[ex.name]) {
+          ex.name = EXERCISE_NAME_MIGRATION[ex.name];
+          needsSave = true;
+        }
+      });
+    }
+  });
+
+  if (needsSave) saveAllData();
+}
 
 // Application State
 let state = {
@@ -116,6 +235,13 @@ function calculate1RM(weight, reps) {
   if (reps === 1) return weight;
   // Epley Formula
   return Math.round((weight * (1 + reps / 30)) * 10) / 10;
+}
+
+function findNearestStandardValue(val, standardArray) {
+  if (!standardArray || standardArray.length === 0) return val;
+  return standardArray.reduce((prev, curr) => {
+    return (Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev);
+  });
 }
 
 function computeFromSets(sets, type) {
@@ -325,6 +451,9 @@ function loadAllData() {
 
   saveAllData();
   updateAchievements();
+
+  // Run muscle group split migration (idempotent — only changes old data)
+  migrateMuscleSplit();
 }
 
 function saveAllData() {
@@ -440,6 +569,10 @@ function initRecapView() {
 
       const item = document.createElement("div");
       item.className = "overview-item";
+      item.style.cursor = "pointer";
+      item.addEventListener("click", () => {
+        initWorkoutLoggingView(name);
+      });
 
       const header = document.createElement("div");
       header.className = "overview-header";
@@ -451,7 +584,8 @@ function initRecapView() {
       const logBtn = document.createElement("button");
       logBtn.className = "btn btn-cyan btn-sm btn-rect";
       logBtn.innerHTML = "🏋️ Log";
-      logBtn.addEventListener("click", () => {
+      logBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
         initWorkoutLoggingView(name);
       });
 
@@ -637,16 +771,19 @@ function buildSuggestedSets(type) {
     if (type === "weighted") {
       if (mode === "easy") {
         newSet.weight = Math.max(0, Math.round((set.weight * 0.9) * 10) / 10);
-        newSet.reps = Math.max(1, set.reps - 2);
+        newSet.reps = Math.max(5, set.reps - 2);
       } else if (mode === "push") {
         newSet.weight = set.weight + 2.5;
       }
+      newSet.weight = findNearestStandardValue(newSet.weight, STANDARD_WEIGHTS);
+      newSet.reps = findNearestStandardValue(newSet.reps, STANDARD_REPS);
     } else if (type === "bodyweight") {
       if (mode === "easy") {
-        newSet.reps = Math.max(1, Math.round(set.reps * 0.8));
+        newSet.reps = Math.max(5, Math.round(set.reps * 0.8));
       } else if (mode === "push") {
         newSet.reps = set.reps + 2;
       }
+      newSet.reps = findNearestStandardValue(newSet.reps, STANDARD_REPS);
     } else if (type === "cardio") {
       if (mode === "easy") {
         newSet.distance = Math.max(0.1, Math.round((set.distance * 0.8) * 100) / 100);
@@ -659,11 +796,7 @@ function buildSuggestedSets(type) {
     setsToRender.push(newSet);
   });
 
-  // If push day and no exercises completed, append an extra set to promote progressive overload
-  if (mode === "push" && isFromHistory && setsToRender.length < 5) {
-    const lastSet = setsToRender[setsToRender.length - 1];
-    setsToRender.push({ ...lastSet });
-  }
+
 
   // 3. Render Set Input Elements
   setsToRender.forEach((set, index) => {
@@ -696,6 +829,69 @@ function appendSetRow(type, values = {}, setNum) {
   row.dataset.setNum = setNum;
 
 
+
+  // Helper to create a select dropdown with standard values + Custom option
+  function createStandardSelect(className, standardValues, currentValue, unit) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "set-select-group";
+
+    const select = document.createElement("select");
+    select.className = className;
+
+    // Add standard value options
+    standardValues.forEach(v => {
+      const opt = document.createElement("option");
+      opt.value = v;
+      opt.textContent = `${v}`;
+      select.appendChild(opt);
+    });
+
+    // Add Custom option
+    const customOpt = document.createElement("option");
+    customOpt.value = "__custom__";
+    customOpt.textContent = "Custom";
+    select.appendChild(customOpt);
+
+    // Custom input (hidden by default)
+    const customWrap = document.createElement("div");
+    customWrap.className = "custom-input-wrap";
+    const customInput = document.createElement("input");
+    customInput.type = "number";
+    customInput.className = `${className}-custom`;
+    customInput.step = unit === "kg" ? "0.5" : "1";
+    customInput.min = "0";
+    customInput.placeholder = `Custom ${unit || ""}`;
+    customWrap.appendChild(customInput);
+
+    // Set value — check if it matches a standard value
+    if (currentValue !== undefined && currentValue !== "" && currentValue !== 0) {
+      const numVal = Number(currentValue);
+      if (standardValues.includes(numVal)) {
+        select.value = numVal;
+      } else {
+        select.value = "__custom__";
+        customWrap.classList.add("active");
+        customInput.value = numVal;
+      }
+    } else {
+      select.selectedIndex = 0;
+    }
+
+    // Toggle custom input visibility
+    select.addEventListener("change", () => {
+      if (select.value === "__custom__") {
+        customWrap.classList.add("active");
+        customInput.focus();
+      } else {
+        customWrap.classList.remove("active");
+        customInput.value = "";
+      }
+    });
+
+    wrapper.appendChild(select);
+    wrapper.appendChild(customWrap);
+    return wrapper;
+  }
 
   // Set counter badge
   const numDiv = document.createElement("div");
@@ -746,50 +942,31 @@ function appendSetRow(type, values = {}, setNum) {
     timeDiv.appendChild(timeInput);
     row.appendChild(timeDiv);
   } else if (type === "bodyweight") {
-    // Reps Input
+    // Reps Dropdown
     const repsDiv = document.createElement("div");
     const repsLabel = document.createElement("label");
     repsLabel.textContent = "Reps";
-    const repsInput = document.createElement("input");
-    repsInput.type = "number";
-    repsInput.className = "set-reps";
-    repsInput.step = "1";
-    repsInput.min = "0";
-    repsInput.value = values.reps !== undefined ? values.reps : "";
-    repsInput.placeholder = "0";
+    const repsSelect = createStandardSelect("set-reps", STANDARD_REPS, values.reps, "reps");
     repsDiv.appendChild(repsLabel);
-    repsDiv.appendChild(repsInput);
+    repsDiv.appendChild(repsSelect);
     row.appendChild(repsDiv);
   } else {
-    // Weighted
-    // Weight Input
+    // Weighted — Weight Dropdown
     const wDiv = document.createElement("div");
     const wLabel = document.createElement("label");
     wLabel.textContent = "Weight (kg)";
-    const wInput = document.createElement("input");
-    wInput.type = "number";
-    wInput.className = "set-weight";
-    wInput.step = "0.5";
-    wInput.min = "0";
-    wInput.value = values.weight !== undefined ? values.weight : "";
-    wInput.placeholder = "0.0";
+    const weightSelect = createStandardSelect("set-weight", STANDARD_WEIGHTS, values.weight, "kg");
     wDiv.appendChild(wLabel);
-    wDiv.appendChild(wInput);
+    wDiv.appendChild(weightSelect);
     row.appendChild(wDiv);
 
-    // Reps Input
+    // Reps Dropdown
     const repsDiv = document.createElement("div");
     const repsLabel = document.createElement("label");
     repsLabel.textContent = "Reps";
-    const repsInput = document.createElement("input");
-    repsInput.type = "number";
-    repsInput.className = "set-reps";
-    repsInput.step = "1";
-    repsInput.min = "0";
-    repsInput.value = values.reps !== undefined ? values.reps : "";
-    repsInput.placeholder = "0";
+    const repsSelect = createStandardSelect("set-reps", STANDARD_REPS, values.reps, "reps");
     repsDiv.appendChild(repsLabel);
-    repsDiv.appendChild(repsInput);
+    repsDiv.appendChild(repsSelect);
     row.appendChild(repsDiv);
   }
 
@@ -999,6 +1176,15 @@ function renderHistoryList(logs) {
     const actions = document.createElement("div");
     actions.className = "history-actions";
 
+    // Edit button
+    const editBtn = document.createElement("button");
+    editBtn.innerHTML = "✏️";
+    editBtn.className = "edit-btn";
+    editBtn.title = "Edit this session entry";
+    editBtn.addEventListener("click", () => {
+      editPastEntry(log);
+    });
+
     const delBtn = document.createElement("button");
     delBtn.innerHTML = "🗑";
     delBtn.title = "Delete this session entry";
@@ -1006,6 +1192,7 @@ function renderHistoryList(logs) {
       deleteSessionEntry(log.date, log.exercise);
     });
 
+    actions.appendChild(editBtn);
     actions.appendChild(delBtn);
     header.appendChild(dateSpan);
     header.appendChild(actions);
@@ -1028,6 +1215,39 @@ function renderHistoryList(logs) {
     item.appendChild(details);
     container.appendChild(item);
   });
+}
+
+// Edit a past exercise entry — loads it into Step 3 form for modification
+function editPastEntry(log) {
+  triggerHaptic(5);
+  
+  // Set muscle and exercise context
+  state.selectedMuscle = log.muscle;
+  state.selectedExercise = log.exercise;
+  
+  // Navigate to workout view with the exercise pre-selected
+  initWorkoutLoggingView(log.exercise);
+  
+  // Wait for the view to render, then override the date and sets
+  setTimeout(() => {
+    // Set the date
+    const dateInput = document.getElementById("sessionDate");
+    if (dateInput) dateInput.value = log.date;
+    
+    // Set the exercise type
+    const typeSelect = document.getElementById("exerciseTypeSelect");
+    if (typeSelect) typeSelect.value = log.type;
+    
+    // Clear current sets and rebuild with the log's sets
+    const setsList = document.getElementById("setsList");
+    if (setsList) setsList.innerHTML = "";
+    
+    if (log.sets && log.sets.length > 0) {
+      log.sets.forEach((s, idx) => {
+        appendSetRow(log.type, s, idx + 1);
+      });
+    }
+  }, 100);
 }
 
 // Delete Log Entries
@@ -1223,7 +1443,7 @@ function saveWorkoutEntry() {
   const typeSelect = document.getElementById("exerciseTypeSelect");
   const type = typeSelect ? typeSelect.value : "weighted";
 
-  // Parse set inputs
+  // Parse set inputs from dropdowns
   const rows = document.querySelectorAll("#setsList .set-row");
   const parsedSets = [];
 
@@ -1238,29 +1458,24 @@ function saveWorkoutEntry() {
 
       if (dist <= 0 && mins <= 0) {
         validationFailed = true;
-        distanceInput.focus();
+        if (distanceInput) distanceInput.focus();
       } else {
         parsedSets.push({ distance: dist, time: mins });
       }
     } else if (type === "bodyweight") {
-      const repsInput = row.querySelector(".set-reps");
-      const reps = Number(repsInput ? repsInput.value : 0) || 0;
+      const reps = readSetSelectValue(row, "set-reps");
 
       if (reps <= 0) {
         validationFailed = true;
-        repsInput.focus();
       } else {
         parsedSets.push({ reps });
       }
     } else {
-      const weightInput = row.querySelector(".set-weight");
-      const repsInput = row.querySelector(".set-reps");
-      const weight = Number(weightInput ? weightInput.value : 0) || 0;
-      const reps = Number(repsInput ? repsInput.value : 0) || 0;
+      const weight = readSetSelectValue(row, "set-weight");
+      const reps = readSetSelectValue(row, "set-reps");
 
       if (weight < 0 || reps <= 0) {
         validationFailed = true;
-        weightInput.focus();
       } else {
         parsedSets.push({ weight, reps });
       }
@@ -1317,7 +1532,9 @@ function saveWorkoutEntry() {
       btnSave.innerHTML = originalText;
       btnSave.className = "btn btn-primary";
       btnSave.disabled = false;
-    }, 1500);
+      // Navigate to Step 2 (recap view) after save
+      initRecapView();
+    }, 1200);
   }
 
   refreshExerciseStats();
@@ -1591,6 +1808,9 @@ function toggleFocusMode() {
 }
 
 // Date-wise History View Manager
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+
 function initDateHistoryView() {
   const dateInput = document.getElementById("dateHistoryInput");
   if (dateInput) {
@@ -1599,10 +1819,122 @@ function initDateHistoryView() {
     const offset = today.getTimezoneOffset();
     const localToday = new Date(today.getTime() - (offset * 60 * 1000));
     dateInput.value = localToday.toISOString().split("T")[0];
+    
+    // Set custom calendar view defaults to today's month/year
+    calYear = today.getFullYear();
+    calMonth = today.getMonth();
   }
 
+  renderCustomCalendar();
   renderDatewiseHistory();
   switchView("view-date-history");
+}
+
+function renderCustomCalendar() {
+  const container = document.getElementById("inlineCalendar");
+  if (!container) return;
+  container.innerHTML = "";
+
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  // Unique dates from entries containing active logs
+  const activeDates = new Set(
+    state.entries
+      .filter(e => e.exercise !== "__muscle_complete__")
+      .map(e => e.date)
+  );
+
+  const selectedDate = document.getElementById("dateHistoryInput")?.value || "";
+
+  // Days in month calculations
+  const firstDayIndex = new Date(calYear, calMonth, 1).getDay(); // 0 (Sun) to 6 (Sat)
+  const totalDays = new Date(calYear, calMonth + 1, 0).getDate();
+
+  // Create Header
+  const header = document.createElement("div");
+  header.className = "cal-header";
+  header.innerHTML = `
+    <button class="cal-nav-btn" id="calPrevBtn">◀</button>
+    <span>${monthNames[calMonth]} ${calYear}</span>
+    <button class="cal-nav-btn" id="calNextBtn">▶</button>
+  `;
+  container.appendChild(header);
+
+  // Bind header buttons
+  header.querySelector("#calPrevBtn").addEventListener("click", () => {
+    triggerHaptic(5);
+    calMonth--;
+    if (calMonth < 0) {
+      calMonth = 11;
+      calYear--;
+    }
+    renderCustomCalendar();
+  });
+
+  header.querySelector("#calNextBtn").addEventListener("click", () => {
+    triggerHaptic(5);
+    calMonth++;
+    if (calMonth > 11) {
+      calMonth = 0;
+      calYear++;
+    }
+    renderCustomCalendar();
+  });
+
+  // Create Grid
+  const grid = document.createElement("div");
+  grid.className = "cal-grid";
+
+  // Weekday labels
+  const weekdays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+  weekdays.forEach(day => {
+    const el = document.createElement("div");
+    el.className = "cal-weekday";
+    el.textContent = day;
+    grid.appendChild(el);
+  });
+
+  // Empty cells for padding
+  for (let i = 0; i < firstDayIndex; i++) {
+    const el = document.createElement("div");
+    el.className = "cal-day empty-day";
+    grid.appendChild(el);
+  }
+
+  // Month days
+  for (let day = 1; day <= totalDays; day++) {
+    const el = document.createElement("div");
+    el.className = "cal-day";
+    el.textContent = day;
+
+    // Get date string YYYY-MM-DD local format
+    const mStr = String(calMonth + 1).padStart(2, "0");
+    const dStr = String(day).padStart(2, "0");
+    const dayDateStr = `${calYear}-${mStr}-${dStr}`;
+
+    const hasLogs = activeDates.has(dayDateStr);
+    const isSelected = dayDateStr === selectedDate;
+
+    if (hasLogs) el.classList.add("has-logs");
+    if (isSelected) el.classList.add("selected-day");
+
+    el.addEventListener("click", () => {
+      triggerHaptic(10);
+      const dateInput = document.getElementById("dateHistoryInput");
+      if (dateInput) {
+        dateInput.value = dayDateStr;
+      }
+      renderCustomCalendar();
+      renderDatewiseHistory();
+    });
+
+    grid.appendChild(el);
+  }
+
+  container.appendChild(grid);
 }
 
 function renderDatewiseHistory() {
@@ -2061,7 +2393,19 @@ function importWorkoutData(event) {
 
         state.headline = headlineToImport;
         state.mode = modeToImport;
-        state.customExercises = customExercisesToImport;
+        
+        // Merge custom exercises instead of replacing — preserve existing + add imported
+        Object.keys(customExercisesToImport).forEach(muscle => {
+          const existing = state.customExercises[muscle] || [];
+          const imported = customExercisesToImport[muscle] || [];
+          const merged = [...existing];
+          imported.forEach(ex => {
+            const alreadyExists = merged.some(m => normalizeName(m.name) === normalizeName(ex.name));
+            if (!alreadyExists) merged.push(ex);
+          });
+          state.customExercises[muscle] = dedupeExerciseObjects(merged);
+        });
+        
         state.bodyweightEntries = bodyweightEntriesToImport;
         state.entries = entriesToImport;
 
@@ -2080,6 +2424,385 @@ function importWorkoutData(event) {
 }
 
 // App Orchestration Initialization
+// ================================================
+// Exercise Guides Database & Helper
+// ================================================
+const EXERCISE_GUIDES = {
+  "Incline Press (Dumbbell)": {
+    steps: [
+      "Set incline bench to 30-45 degrees.",
+      "Start with dumbbells at chest level, elbows at 45 degrees.",
+      "Press dumbbells up in a controlled arc, squeezing the upper chest."
+    ],
+    visual: "Upper-Chest Press"
+  },
+  "Chest Fly Machine": {
+    steps: [
+      "Adjust seat so handles are at chest height.",
+      "Keep elbows slightly bent, contract chest to bring hands together in a wide arc.",
+      "Return to starting position slowly, feeling the stretch."
+    ],
+    visual: "Pectoral Fly"
+  },
+  "Push-ups": {
+    steps: [
+      "Start in a plank position with hands slightly wider than shoulders.",
+      "Lower body until chest nearly touches the floor, keeping core rigid.",
+      "Push back up to starting position, locking out at the top."
+    ],
+    visual: "Plank Pushup"
+  },
+  "Chest Bench Press": {
+    steps: [
+      "Lie flat on the bench, grip the barbell slightly wider than shoulders.",
+      "Lower the barbell under control to mid-chest level.",
+      "Press the bar up powerfully, locking out at the top."
+    ],
+    visual: "Flat Bench Barbell"
+  },
+  "Inclined Bench Press": {
+    steps: [
+      "Lie on incline bench, grip bar slightly wider than shoulders.",
+      "Lower the barbell under control to upper chest level.",
+      "Press bar straight up powerfully."
+    ],
+    visual: "Incline Barbell"
+  },
+  "Fly (Dumbbell)": {
+    steps: [
+      "Lie flat on bench, hold dumbbells directly above chest with palms facing.",
+      "Lower weights out in wide arc until feeling stretch in chest.",
+      "Engage chest to pull weights back to starting position."
+    ],
+    visual: "Dumbbell Fly"
+  },
+  "Tricep Pushdown": {
+    steps: [
+      "Stand facing the cable machine, elbows tucked firmly at your sides.",
+      "Extend your arms fully to press the bar/rope down.",
+      "Return slowly, keeping upper arms perfectly stationary."
+    ],
+    visual: "Cable Pushdown"
+  },
+  "Overhead Tricep Extension": {
+    steps: [
+      "Hold dumbbell/rope overhead, elbows tucked close to ears.",
+      "Lower the weight behind your head by bending only at elbows.",
+      "Extend arms to return to start."
+    ],
+    visual: "Overhead Dumbbell"
+  },
+  "Rope Pushdown": {
+    steps: [
+      "Stand facing machine, hold rope ends, elbows tucked.",
+      "Push rope down, flaring hands apart at bottom extension.",
+      "Slowly return under control."
+    ],
+    visual: "Cable Rope Pushdown"
+  },
+  "Dips": {
+    steps: [
+      "Support weight on parallel bars, elbows straight.",
+      "Lower body by bending elbows until chest is close to hands.",
+      "Press back up to lock out."
+    ],
+    visual: "Parallel Bar Dips"
+  },
+  "Lat Pulldown": {
+    steps: [
+      "Grip the bar wider than shoulder-width, sit secure under pads.",
+      "Pull the bar down to your upper chest, leading with elbows.",
+      "Control the weight back up to the starting position."
+    ],
+    visual: "Pullover Pulldown"
+  },
+  "Seated Row": {
+    steps: [
+      "Sit at machine, feet on plates, knees slightly bent.",
+      "Pull handle toward lower chest, squeezing shoulder blades.",
+      "Extend arms back with controlled speed."
+    ],
+    visual: "Cable Row"
+  },
+  "Deadlift": {
+    steps: [
+      "Stand with mid-foot under barbell, hip-width stance.",
+      "Hinge at hips, grip the bar, keep flat back.",
+      "Drive through heels to stand upright, locking hips at top."
+    ],
+    visual: "Hip Hinge Lift"
+  },
+  "Pull-ups": {
+    steps: [
+      "Hang from bar with palms facing away, shoulder-width.",
+      "Pull chest to bar by driving elbows down.",
+      "Lower slowly to full hang."
+    ],
+    visual: "Vertical Pull"
+  },
+  "Curl (Barbell)": {
+    steps: [
+      "Stand upright, grip barbell with underhand grip.",
+      "Curl bar up toward shoulders, keeping elbows locked at sides.",
+      "Lower barbell slowly under complete control."
+    ],
+    visual: "Barbell Curl"
+  },
+  "Hammer Curl (Dumbbell)": {
+    steps: [
+      "Stand with dumbbells at sides, palms facing each other.",
+      "Curl weights up while keeping palms facing in.",
+      "Control the eccentric phase back down."
+    ],
+    visual: "Neutral Grip Curl"
+  },
+  "Back Squat": {
+    steps: [
+      "Rest barbell on upper traps, grip firmly.",
+      "Hinge hips back and bend knees, squatting to parallel or deeper.",
+      "Drive straight up, keeping spine neutral and knees tracking toes."
+    ],
+    visual: "Squat Dynamics"
+  }
+};
+
+function getExerciseGuide(name, muscle) {
+  const normalized = normalizeName(name);
+  const matchedKey = Object.keys(EXERCISE_GUIDES).find(k => normalized.includes(normalizeName(k)));
+  if (matchedKey) return EXERCISE_GUIDES[matchedKey];
+
+  return {
+    steps: [
+      `Secure body alignment for ${name}.`,
+      `Contract targeted ${muscle} groups in a controlled range of motion.`,
+      `Ensure maximum stability and smooth breathing throughout the lift.`
+    ],
+    visual: "Core Kinetics"
+  };
+}
+
+// Exercise Manager View
+function initExerciseManager() {
+  renderExerciseManagerList();
+  switchView("view-exercise-manager");
+}
+
+function renderExerciseManagerList(filterText = "") {
+  const container = document.getElementById("exManagerList");
+  if (!container) return;
+  container.innerHTML = "";
+
+  const filter = (filterText || "").toLowerCase().trim();
+
+  MUSCLES.forEach(muscle => {
+    const allExercises = getAllExercisesForMuscle(muscle);
+    const defaults = (DEFAULT_EXERCISES[muscle] || []).map(e => normalizeName(e.name));
+    
+    // Filter exercises
+    const filtered = filter 
+      ? allExercises.filter(ex => ex.name.toLowerCase().includes(filter) || muscle.toLowerCase().includes(filter))
+      : allExercises;
+
+    if (filtered.length === 0) return;
+
+    const group = document.createElement("div");
+    group.className = "ex-manager-group";
+
+    const title = document.createElement("div");
+    title.className = "ex-manager-group-title";
+    title.style.display = "flex";
+    title.style.justifyContent = "space-between";
+    title.style.alignItems = "center";
+    title.innerHTML = `
+      <span>${muscle} <span class="ex-count">${filtered.length} exercises</span></span>
+      <button class="btn btn-cyan btn-sm" style="padding: 2px 8px; min-height: 24px; font-size: 0.72rem; border-radius: var(--radius-sm);">➕ Add</button>
+    `;
+    group.appendChild(title);
+
+    // Add click handler for the muscle group "Add Custom Exercise" button
+    const addBtn = title.querySelector("button");
+    addBtn.addEventListener("click", () => {
+      triggerHaptic(10);
+      const name = prompt(`Enter new custom exercise name for ${muscle}:`);
+      if (!name || !name.trim()) return;
+      
+      const type = prompt(`Enter type (weighted, bodyweight, or cardio):`, "weighted");
+      if (!type) return;
+      const normalizedType = type.trim().toLowerCase();
+      if (!["weighted", "bodyweight", "cardio"].includes(normalizedType)) {
+        alert("Invalid type! Must be weighted, bodyweight, or cardio.");
+        return;
+      }
+      
+      const exercises = getAllExercisesForMuscle(muscle);
+      const match = exercises.find(ex => normalizeName(ex.name) === normalizeName(name));
+      if (match) {
+        alert(`The exercise "${name}" already exists on this battlefield.`);
+        return;
+      }
+      
+      if (!state.customExercises[muscle]) {
+        state.customExercises[muscle] = [];
+      }
+      state.customExercises[muscle].push({
+        name: name.trim(),
+        type: normalizedType
+      });
+      saveAllData();
+      renderExerciseManagerList(filterText);
+    });
+
+    filtered.forEach(ex => {
+      const isDefault = defaults.includes(normalizeName(ex.name));
+      const item = document.createElement("div");
+      item.className = `ex-manager-item${isDefault ? " is-default" : ""}`;
+      item.style.flexDirection = "column";
+      item.style.alignItems = "stretch";
+
+      const mainRow = document.createElement("div");
+      mainRow.className = "ex-manager-main-row";
+      mainRow.style.display = "flex";
+      mainRow.style.alignItems = "center";
+      mainRow.style.gap = "8px";
+      mainRow.style.width = "100%";
+
+      // Info/How-To toggle button
+      const infoBtn = document.createElement("button");
+      infoBtn.className = "btn btn-secondary btn-sm";
+      infoBtn.innerHTML = "ℹ️";
+      infoBtn.title = "View Execution Guide";
+      infoBtn.style.padding = "3px 6px";
+      infoBtn.style.minHeight = "26px";
+      infoBtn.style.minWidth = "26px";
+      mainRow.appendChild(infoBtn);
+
+      // Exercise name
+      const nameDiv = document.createElement("div");
+      nameDiv.className = "ex-name";
+      nameDiv.textContent = ex.name;
+      nameDiv.style.cursor = "pointer";
+      mainRow.appendChild(nameDiv);
+
+      // Type badge
+      const typeBadge = document.createElement("span");
+      typeBadge.className = `ex-type-badge ${ex.type}`;
+      typeBadge.textContent = ex.type;
+      mainRow.appendChild(typeBadge);
+
+      // Action buttons
+      const actionsDiv = document.createElement("div");
+      actionsDiv.className = "ex-actions";
+
+      // Edit (rename) button
+      const editBtn = document.createElement("button");
+      editBtn.className = "btn btn-secondary btn-sm";
+      editBtn.innerHTML = "✏️";
+      editBtn.title = isDefault ? "Cannot rename default exercises" : "Rename exercise";
+      if (isDefault) {
+        editBtn.style.opacity = "0.3";
+        editBtn.style.pointerEvents = "none";
+      }
+      editBtn.addEventListener("click", (e) => {
+        e.stopPropagation(); // Avoid triggering info toggle
+        // Inline edit mode
+        nameDiv.innerHTML = "";
+        const input = document.createElement("input");
+        input.type = "text";
+        input.value = ex.name;
+        input.style.marginBottom = "0";
+        input.style.fontSize = "0.82rem";
+        input.style.padding = "4px 8px";
+        input.style.minHeight = "28px";
+        nameDiv.appendChild(input);
+        input.focus();
+        input.select();
+
+        const saveRename = () => {
+          const newName = input.value.trim();
+          if (newName && newName !== ex.name) {
+            // Update in custom exercises
+            const customs = state.customExercises[muscle] || [];
+            const target = customs.find(c => normalizeName(c.name) === normalizeName(ex.name));
+            if (target) {
+              // Also update any history entries referencing the old name
+              state.entries.forEach(entry => {
+                if (entry.muscle === muscle && normalizeName(entry.exercise) === normalizeName(ex.name)) {
+                  entry.exercise = newName;
+                }
+              });
+              target.name = newName;
+              saveAllData();
+            }
+          }
+          renderExerciseManagerList(filterText);
+        };
+
+        input.addEventListener("blur", saveRename);
+        input.addEventListener("keydown", (evt) => {
+          if (evt.key === "Enter") saveRename();
+          if (evt.key === "Escape") renderExerciseManagerList(filterText);
+        });
+      });
+      actionsDiv.appendChild(editBtn);
+
+      // Delete button
+      const delBtn = document.createElement("button");
+      delBtn.className = "btn btn-danger btn-sm";
+      delBtn.innerHTML = "🗑";
+      delBtn.title = isDefault ? "Cannot delete default exercises" : "Delete custom exercise";
+      delBtn.addEventListener("click", (e) => {
+        e.stopPropagation(); // Avoid triggering info toggle
+        if (isDefault) return;
+        if (!confirm(`Delete "${ex.name}" from ${muscle}?`)) return;
+        triggerHaptic(10);
+        const customs = state.customExercises[muscle] || [];
+        state.customExercises[muscle] = customs.filter(c => normalizeName(c.name) !== normalizeName(ex.name));
+        saveAllData();
+        renderExerciseManagerList(filterText);
+      });
+      actionsDiv.appendChild(delBtn);
+
+      mainRow.appendChild(actionsDiv);
+      item.appendChild(mainRow);
+
+      // How-To Panel
+      const howToPanel = document.createElement("div");
+      howToPanel.className = "ex-howto-panel";
+      
+      const guide = getExerciseGuide(ex.name, muscle);
+      
+      const stepsList = document.createElement("ol");
+      stepsList.className = "ex-howto-steps";
+      stepsList.style.paddingLeft = "16px";
+      guide.steps.forEach(step => {
+        const li = document.createElement("li");
+        li.textContent = step;
+        stepsList.appendChild(li);
+      });
+      howToPanel.appendChild(stepsList);
+
+      const visualDiv = document.createElement("div");
+      visualDiv.className = "ex-howto-visual";
+      visualDiv.innerHTML = `<span style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;z-index:2;">Motion Dynamics: ${guide.visual}</span>`;
+      howToPanel.appendChild(visualDiv);
+
+      item.appendChild(howToPanel);
+
+      // Toggle behavior
+      const toggleHowTo = () => {
+        triggerHaptic(5);
+        howToPanel.classList.toggle("active");
+      };
+      infoBtn.addEventListener("click", toggleHowTo);
+      nameDiv.addEventListener("click", toggleHowTo);
+
+      group.appendChild(item);
+    });
+
+    container.appendChild(group);
+  });
+}
+
 function initApp() {
   renderMuscleTabs();
   
@@ -2133,8 +2856,20 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Settings Modal open/close binders
-  document.getElementById("btnOpenSettings")?.addEventListener("click", () => {
+  document.getElementById("btnOpenSettings")?.addEventListener("click", (e) => {
     triggerHaptic(10);
+    
+    const btn = e.currentTarget;
+    btn.classList.add("sparkle-active");
+    setTimeout(() => {
+      btn.classList.remove("sparkle-active");
+    }, 600);
+    
+    const rect = btn.getBoundingClientRect();
+    const x = rect.left + rect.width / 2 + window.scrollX;
+    const y = rect.top + rect.height / 2 + window.scrollY;
+    triggerSparklingAnimation(x, y);
+
     const settingsModal = document.getElementById("settingsModal");
     if (settingsModal) {
       settingsModal.style.display = "flex";
@@ -2227,6 +2962,25 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById("btnSaveBodyweight")?.addEventListener("click", saveBodyweightLog);
 
+  // Exercise Manager View Binders
+  document.getElementById("btnOpenExManager")?.addEventListener("click", () => {
+    triggerHaptic(10);
+    const settingsModal = document.getElementById("settingsModal");
+    if (settingsModal) {
+      settingsModal.style.opacity = "0";
+      setTimeout(() => {
+        settingsModal.style.display = "none";
+      }, 300);
+    }
+    initExerciseManager();
+  });
+  document.getElementById("btnBackFromExManager")?.addEventListener("click", () => {
+    switchView("view-muscles");
+  });
+  document.getElementById("exManagerSearch")?.addEventListener("input", (e) => {
+    renderExerciseManagerList(e.target.value);
+  });
+
   // Danger Reset Binders
   document.getElementById("btnGoToReset")?.addEventListener("click", () => {
     const settingsModal = document.getElementById("settingsModal");
@@ -2288,6 +3042,12 @@ document.addEventListener("DOMContentLoaded", () => {
       }, 500);
     }
   });
+
+  // Conquest Achievements click binders to show goals
+  document.getElementById("badgeStreak")?.addEventListener("click", () => showAchievementTarget("streak"));
+  document.getElementById("badgeTon")?.addEventListener("click", () => showAchievementTarget("ton"));
+  document.getElementById("badgeLung")?.addEventListener("click", () => showAchievementTarget("lung"));
+  document.getElementById("badgeWeigh")?.addEventListener("click", () => showAchievementTarget("weigh"));
 });
 
 // PWA Service Worker Registration
@@ -2304,16 +3064,8 @@ if ("serviceWorker" in navigator) {
 // ==========================================================================
 
 // 1. Achievements & Streak Calculator
-function updateAchievements() {
-  const streakEl = document.getElementById("badgeStreak");
-  const tonEl = document.getElementById("badgeTon");
-  const lungEl = document.getElementById("badgeLung");
-  const weighEl = document.getElementById("badgeWeigh");
-  const rankEl = document.getElementById("conquestRank");
-  
-  if (!streakEl || !tonEl || !lungEl || !weighEl || !rankEl) return;
-  
-  // Calculate Streak of workout days (based on unique date tags)
+// 1. Achievements & Streak Calculator
+function getStreakCount() {
   const activeDates = Array.from(new Set(
     state.entries
       .filter(e => e.exercise !== "__muscle_complete__")
@@ -2341,60 +3093,194 @@ function updateAchievements() {
       }
     }
   }
-  
-  // Calculate Lifetime Volume
+  return currentStreak;
+}
+
+function getLifetimeVolume() {
   let totalVolume = 0;
   state.entries.forEach(e => {
     if (e.type === "weighted") {
       totalVolume += Number(e.totalVolume || 0);
     }
   });
-  
-  // Calculate Lifetime Distance
+  return totalVolume;
+}
+
+function getLifetimeDistance() {
   let totalDistance = 0;
   state.entries.forEach(e => {
     if (e.type === "cardio") {
       totalDistance += Number(e.totalDistance || 0);
     }
   });
+  return totalDistance;
+}
+
+function showAchievementTarget(id) {
+  triggerHaptic(10);
+  let title = "";
+  let icon = "";
+  let currentVal = 0;
+  let unit = "";
+  let levels = [];
   
-  // Weigh-In count
+  if (id === "streak") {
+    title = "Conquest Streak";
+    icon = "⚡";
+    currentVal = getStreakCount();
+    unit = "days";
+    levels = [
+      { lvl: 1, target: 3, name: "Bronze Raider" },
+      { lvl: 2, target: 7, name: "Silver Gladiator" },
+      { lvl: 3, target: 15, name: "Gold Conquest Overlord" }
+    ];
+  } else if (id === "ton") {
+    title = "Ton-Club";
+    icon = "🏋️";
+    currentVal = Math.round(getLifetimeVolume());
+    unit = "kg";
+    levels = [
+      { lvl: 1, target: 1000, name: "Iron Recruit" },
+      { lvl: 2, target: 5000, name: "Titan Crusher" },
+      { lvl: 3, target: 15000, name: "All-Out Legend" }
+    ];
+  } else if (id === "lung") {
+    title = "Iron-Lung";
+    icon = "🏃";
+    currentVal = Math.round(getLifetimeDistance() * 10) / 10;
+    unit = "km";
+    levels = [
+      { lvl: 1, target: 5.0, name: "Wind Runner" },
+      { lvl: 2, target: 20.0, name: "Stamina Cyborg" },
+      { lvl: 3, target: 50.0, name: "Hyper-Drive Racer" }
+    ];
+  } else if (id === "weigh") {
+    title = "Scale-Master";
+    icon = "⚖️";
+    currentVal = state.bodyweightEntries.length;
+    unit = "logs";
+    levels = [
+      { lvl: 1, target: 3, name: "Habit Builder" },
+      { lvl: 2, target: 10, name: "Stat Track Master" },
+      { lvl: 3, target: 30, name: "Data Titan" }
+    ];
+  }
+
+  let currentLvl = 0;
+  levels.forEach(l => {
+    if (currentVal >= l.target) {
+      currentLvl = l.lvl;
+    }
+  });
+
+  const nextLvl = levels.find(l => l.lvl === currentLvl + 1) || null;
+
+  let message = "";
+  if (currentLvl === 0) {
+    message = `Locked!\nPush to reach ${levels[0].target} ${unit} to unlock Level 1 (${levels[0].name}).`;
+  } else if (nextLvl) {
+    message = `Current: Level ${currentLvl} (${levels[currentLvl-1].name}).\nNext Goal: Reach ${nextLvl.target} ${unit} to unlock Level ${nextLvl.lvl} (${nextLvl.name})!`;
+  } else {
+    message = `Max Level Conquered! Level ${currentLvl} (${levels[2].name}) - Absolute Overlord!`;
+  }
+
+  alert(`🏆 ACHIEVEMENT STATUS: ${icon} ${title}\n\nYour Current Record: ${currentVal} ${unit}\n\n${message}`);
+}
+
+function updateAchievements() {
+  const streakEl = document.getElementById("badgeStreak");
+  const tonEl = document.getElementById("badgeTon");
+  const lungEl = document.getElementById("badgeLung");
+  const weighEl = document.getElementById("badgeWeigh");
+  const rankEl = document.getElementById("conquestRank");
+  
+  if (!streakEl || !tonEl || !lungEl || !weighEl || !rankEl) return;
+  
+  const currentStreak = getStreakCount();
+  const totalVolume = getLifetimeVolume();
+  const totalDistance = getLifetimeDistance();
   const weighInCount = state.bodyweightEntries.length;
   
-  // Unlock targets
-  const streakUnlocked = currentStreak >= 3;
-  const tonUnlocked = totalVolume >= 1000;
-  const lungUnlocked = totalDistance >= 5.0;
-  const weighUnlocked = weighInCount >= 3;
-  
-  // Visual neon glow toggling
-  if (streakUnlocked) streakEl.classList.add("badge-active");
+  // Levels thresholds math
+  let streakLvl = 0;
+  if (currentStreak >= 15) streakLvl = 3;
+  else if (currentStreak >= 7) streakLvl = 2;
+  else if (currentStreak >= 3) streakLvl = 1;
+
+  let tonLvl = 0;
+  if (totalVolume >= 15000) tonLvl = 3;
+  else if (totalVolume >= 5000) tonLvl = 2;
+  else if (totalVolume >= 1000) tonLvl = 1;
+
+  let lungLvl = 0;
+  if (totalDistance >= 50.0) lungLvl = 3;
+  else if (totalDistance >= 20.0) lungLvl = 2;
+  else if (totalDistance >= 5.0) lungLvl = 1;
+
+  let weighLvl = 0;
+  if (weighInCount >= 30) weighLvl = 3;
+  else if (weighInCount >= 10) weighLvl = 2;
+  else if (weighInCount >= 3) weighLvl = 1;
+
+  // Visual active glow targets unlocking
+  if (streakLvl > 0) streakEl.classList.add("badge-active");
   else streakEl.classList.remove("badge-active");
   
-  if (tonUnlocked) tonEl.classList.add("badge-active");
+  if (tonLvl > 0) tonEl.classList.add("badge-active");
   else tonEl.classList.remove("badge-active");
   
-  if (lungUnlocked) lungEl.classList.add("badge-active");
+  if (lungLvl > 0) lungEl.classList.add("badge-active");
   else lungEl.classList.remove("badge-active");
   
-  if (weighUnlocked) weighEl.classList.add("badge-active");
+  if (weighLvl > 0) weighEl.classList.add("badge-active");
   else weighEl.classList.remove("badge-active");
   
-  // Conquest ranks ranking math
-  let unlockedCount = 0;
-  if (streakUnlocked) unlockedCount++;
-  if (tonUnlocked) unlockedCount++;
-  if (lungUnlocked) unlockedCount++;
-  if (weighUnlocked) unlockedCount++;
-  
+  // Set Level indicator label HTML
+  const streakLabel = streakEl.querySelector(".stat-label");
+  if (streakLabel) {
+    streakLabel.innerHTML = streakLvl > 0 
+      ? `Streak <span style="color:var(--accent);font-weight:800;">LVL ${streakLvl}</span>` 
+      : "Conquest Streak";
+  }
+
+  const tonLabel = tonEl.querySelector(".stat-label");
+  if (tonLabel) {
+    tonLabel.innerHTML = tonLvl > 0 
+      ? `Ton-Club <span style="color:var(--accent);font-weight:800;">LVL ${tonLvl}</span>` 
+      : "Ton-Club";
+  }
+
+  const lungLabel = lungEl.querySelector(".stat-label");
+  if (lungLabel) {
+    lungLabel.innerHTML = lungLvl > 0 
+      ? `Iron-Lung <span style="color:var(--accent);font-weight:800;">LVL ${lungLvl}</span>` 
+      : "Iron-Lung";
+  }
+
+  const weighLabel = weighEl.querySelector(".stat-label");
+  if (weighLabel) {
+    weighLabel.innerHTML = weighLvl > 0 
+      ? `Scale <span style="color:var(--accent);font-weight:800;">LVL ${weighLvl}</span>` 
+      : "Scale-Master";
+  }
+
+  // Conquest rank overview based on level sum
+  const totalLvlSum = streakLvl + tonLvl + lungLvl + weighLvl;
   const ranks = ["Rookie", "Gladiator", "Slayer", "Titan", "Overlord"];
-  rankEl.textContent = ranks[unlockedCount];
   
-  // Add descriptive tooltips
-  streakEl.title = `Current Streak: ${currentStreak} days (Target: 3 days)`;
-  tonEl.title = `Lifetime Volume: ${Math.round(totalVolume)} kg (Target: 1000 kg)`;
-  lungEl.title = `Lifetime Cardio: ${Math.round(totalDistance * 10) / 10} km (Target: 5.0 km)`;
-  weighEl.title = `Scale Logs: ${weighInCount} weigh-ins (Target: 3 logs)`;
+  let rankIdx = 0;
+  if (totalLvlSum >= 10) rankIdx = 4;
+  else if (totalLvlSum >= 6) rankIdx = 3;
+  else if (totalLvlSum >= 3) rankIdx = 2;
+  else if (totalLvlSum >= 1) rankIdx = 1;
+  
+  rankEl.textContent = ranks[rankIdx];
+  
+  // descriptive tooltips fallback
+  streakEl.title = `Current Streak: ${currentStreak} days (Tap for targets)`;
+  tonEl.title = `Lifetime Volume: ${Math.round(totalVolume)} kg (Tap for targets)`;
+  lungEl.title = `Lifetime Cardio: ${Math.round(totalDistance * 10) / 10} km (Tap for targets)`;
+  weighEl.title = `Scale Logs: ${weighInCount} logs (Tap for targets)`;
 }
 
 // 2. Web Audio Synthesizer sound effect ticks
@@ -2437,6 +3323,39 @@ function triggerExplosionAnimation(x, y) {
     
     spark.style.left = `${x}px`;
     spark.style.top = `${y}px`;
+    spark.style.setProperty("--dx", `${dx}px`);
+    spark.style.setProperty("--dy", `${dy}px`);
+    
+    container.appendChild(spark);
+    
+    setTimeout(() => {
+      spark.remove();
+    }, 500);
+  }
+}
+
+function triggerSparklingAnimation(x, y) {
+  const colors = ["var(--accent)", "var(--cyan)", "#ff007f", "#d4af37"];
+  const particleCount = 20;
+  const container = document.body;
+  
+  for (let i = 0; i < particleCount; i++) {
+    const spark = document.createElement("div");
+    spark.className = "spark-spark";
+    
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    spark.style.background = color;
+    spark.style.boxShadow = `0 0 10px ${color}, 0 0 20px ${color}`;
+    
+    const angle = Math.random() * Math.PI * 2;
+    const velocity = 25 + Math.random() * 45;
+    const dx = Math.cos(angle) * velocity;
+    const dy = Math.sin(angle) * velocity;
+    
+    spark.style.left = `${x}px`;
+    spark.style.top = `${y}px`;
+    spark.style.width = `${4 + Math.random() * 4}px`;
+    spark.style.height = spark.style.width;
     spark.style.setProperty("--dx", `${dx}px`);
     spark.style.setProperty("--dy", `${dy}px`);
     
