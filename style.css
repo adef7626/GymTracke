@@ -1716,24 +1716,84 @@ body.focus-active {
   animation: focus-breath 4s infinite ease-in-out;
 }
 
-/* 4. Settings Spark Gravity Physics */
-.setting-spark {
+/* 4. Settings Spark Gravity Physics (Ultra-Realistic Grinding Spark Trails) */
+.setting-spark-wrap {
   position: absolute;
-  border-radius: 50%;
   pointer-events: none;
   z-index: 10000;
-  animation: setting-gravity-fall 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  animation: setting-gravity-fall 0.65s cubic-bezier(0.05, 0.6, 0.2, 1) forwards;
+}
+.setting-spark-core {
+  width: 1.2px;
+  height: 28px;
+  border-radius: 0.5px;
+  transform-origin: center bottom;
+  filter: brightness(2.8) contrast(1.2);
+  opacity: 0.95;
+  animation: spark-sputter 0.65s cubic-bezier(0.05, 0.6, 0.2, 1) forwards;
 }
 @keyframes setting-gravity-fall {
   0% {
-    transform: translate3d(0, 0, 0) scale(1);
+    transform: translate3d(0, 0, 0);
     opacity: 1;
   }
-  20% {
-    transform: translate3d(calc(var(--dx) * 0.4), calc(var(--dy) * 0.4 - 15px), 0) scale(1.15);
+  30% {
+    /* Initiate early curved flight with small wind/sideways drift */
+    transform: translate3d(calc(var(--dx) * 0.55 + var(--drift) * 0.1), calc(var(--dy) * 0.55 - 12px), 0);
+    opacity: 1;
   }
   100% {
-    transform: translate3d(var(--dx), calc(var(--dy) + 300px), 0) scale(0.1);
+    /* Beautiful parabolic arch curving sideways due to air drift, and downwards due to gravity */
+    transform: translate3d(calc(var(--dx) + var(--drift)), calc(var(--dy) + 180px), 0);
+    opacity: 0;
+  }
+}
+@keyframes spark-sputter {
+  0% {
+    transform: rotate(var(--rad)) scaleY(0.1);
+    box-shadow: 0 0 4px var(--color), 0 0 1px #ffffff;
+    background: linear-gradient(to top, rgba(255, 50, 0, 0) 0%, rgba(255, 100, 0, 0.4) 20%, var(--color) 60%, #ffffff 100%);
+  }
+  20% {
+    transform: rotate(var(--rad)) scaleY(var(--scale-y));
+    box-shadow: 0 0 5px var(--color), 0 0 1.5px #ffffff;
+    background: linear-gradient(to top, rgba(255, 50, 0, 0) 0%, rgba(255, 100, 0, 0.4) 20%, var(--color) 60%, #ffffff 100%);
+  }
+  70% {
+    transform: rotate(var(--rad)) scaleY(var(--scale-y));
+    box-shadow: 0 0 5px var(--color), 0 0 1.5px #ffffff;
+    background: linear-gradient(to top, rgba(255, 50, 0, 0) 0%, rgba(255, 100, 0, 0.4) 20%, var(--color) 60%, #ffffff 100%);
+    opacity: 0.95;
+  }
+  75% {
+    /* Streak collapses into a bright white point just before carbon pop */
+    transform: rotate(var(--rad)) scaleY(0.25);
+    box-shadow: 0 0 6px var(--color), 0 0 2px #ffffff;
+    background: #ffffff;
+    opacity: 1;
+  }
+  80% {
+    /* Explosive Carbon Pop! Splitting into 4 glowing micro-embers */
+    transform: rotate(var(--rad)) scaleY(0.15);
+    background: #ffffff;
+    box-shadow: 
+      0 0 5px var(--color),
+      -4px -4px 3px var(--color),
+      4px -4px 3px var(--color),
+      -4px 4px 3px var(--color),
+      4px 4px 3px var(--color);
+    opacity: 1;
+  }
+  100% {
+    /* Embers expand outwards to represent sputtering sparks cooling down */
+    transform: rotate(var(--rad)) scaleY(0.01);
+    background: transparent;
+    box-shadow: 
+      0 0 2px var(--color),
+      -12px -12px 6px transparent,
+      12px -12px 6px transparent,
+      -12px 12px 6px transparent,
+      12px 12px 6px transparent;
     opacity: 0;
   }
 }
@@ -1784,4 +1844,15 @@ body.focus-active {
   border-color: var(--accent) !important;
   box-shadow: 0 0 10px var(--accent-glow) !important;
   clip-path: none !important;
+}
+
+/* 6. Mode select centered alignment option display */
+select#modeSelect,
+select.mode-select {
+  text-align: center !important;
+  text-align-last: center !important;
+}
+select#modeSelect option,
+select.mode-select option {
+  text-align: center !important;
 }

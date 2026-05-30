@@ -98,10 +98,10 @@ const MUSCLES = [
   "Back",
   "Biceps",
   "Abs",
-  "Legs",
+  "Cardio",
   "Shoulder",
   "Forearms",
-  "Cardio"
+  "Legs"
 ];
 
 const STANDARD_WEIGHTS = [2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90, 100];
@@ -297,7 +297,9 @@ let state = {
   chartInstance: null,
   theme: "orange",
   synthPlaying: false,
-  unit: "kg"
+  unit: "kg",
+  isEditing: false,
+  originalEditingExercise: null
 };
 
 // Haptic & Visual Feedback Helpers
@@ -743,6 +745,29 @@ function initRecapView() {
 function initWorkoutLoggingView(preselectedExerciseName = null) {
   const label = document.getElementById("currentMuscleLabel");
   if (label) label.textContent = `${state.selectedMuscle} Battlefield`;
+
+  // Reset edit mode state
+  state.isEditing = false;
+  const btnSave = document.getElementById("btnSaveWorkout");
+  if (btnSave) {
+    btnSave.innerHTML = "🚀 Save Active Workout Log";
+    btnSave.className = "btn btn-primary";
+    btnSave.disabled = false;
+  }
+
+  // Restore selector visibility and hide edit inputs
+  const editExInput = document.getElementById("editExerciseInput");
+  const exerciseSelect = document.getElementById("exerciseSelect");
+  const btnAdd = document.getElementById("btnAddExercise");
+  const btnDel = document.getElementById("btnDeleteExercise");
+
+  if (editExInput) {
+    editExInput.style.display = "none";
+    editExInput.value = "";
+  }
+  if (exerciseSelect) exerciseSelect.style.display = "block";
+  if (btnAdd) btnAdd.style.display = "block";
+  if (btnDel) btnDel.style.display = "block";
 
   // Pre-fill session date with today's local date
   const dateInput = document.getElementById("sessionDate");
@@ -1340,12 +1365,37 @@ function editPastEntry(log) {
   // Set muscle and exercise context
   state.selectedMuscle = log.muscle;
   state.selectedExercise = log.exercise;
+  state.originalEditingExercise = log.exercise; // Track original name
   
   // Navigate to workout view with the exercise pre-selected
   initWorkoutLoggingView(log.exercise);
   
   // Wait for the view to render, then override the date and sets
   setTimeout(() => {
+    // Set edit mode flag and change save button text!
+    state.isEditing = true;
+
+    // Hide standard select controls, show inline text editor
+    const editExInput = document.getElementById("editExerciseInput");
+    const exerciseSelect = document.getElementById("exerciseSelect");
+    const btnAdd = document.getElementById("btnAddExercise");
+    const btnDel = document.getElementById("btnDeleteExercise");
+
+    if (editExInput) {
+      editExInput.style.display = "block";
+      editExInput.value = log.exercise;
+      editExInput.focus();
+      editExInput.select();
+    }
+    if (exerciseSelect) exerciseSelect.style.display = "none";
+    if (btnAdd) btnAdd.style.display = "none";
+    if (btnDel) btnDel.style.display = "none";
+
+    const btnSave = document.getElementById("btnSaveWorkout");
+    if (btnSave) {
+      btnSave.innerHTML = "💾 save edited entry";
+    }
+
     // Set the date
     const dateInput = document.getElementById("sessionDate");
     if (dateInput) dateInput.value = log.date;
@@ -1540,6 +1590,17 @@ function buildProgressChart(logs, type) {
   });
 }
 
+// Helper to read standard select dropdowns and support Custom option text input values
+function readSetSelectValue(row, className) {
+  const select = row.querySelector(`select.${className}`);
+  if (!select) return 0;
+  if (select.value === "__custom__") {
+    const customInput = row.querySelector(`input.${className}-custom`);
+    return Number(customInput ? customInput.value : 0) || 0;
+  }
+  return Number(select.value) || 0;
+}
+
 // Workout Log Savings
 function saveWorkoutEntry() {
   const dateInput = document.getElementById("sessionDate");
@@ -1608,6 +1669,56 @@ function saveWorkoutEntry() {
     return;
   }
 
+  // Read edited exercise name from text input if in editing mode
+  if (state.isEditing) {
+    const editInput = document.getElementById("editExerciseInput");
+    if (editInput && editInput.value.trim()) {
+      const newName = editInput.value.trim();
+      const oldName = state.originalEditingExercise || state.selectedExercise;
+      
+      if (normalizeName(newName) !== normalizeName(oldName)) {
+        state.selectedExercise = newName;
+        
+        // Sync the renamed exercise name directly in custom exercises library!
+        const muscle = state.selectedMuscle;
+        if (!state.customExercises[muscle]) {
+          state.customExercises[muscle] = [];
+        }
+        
+        const targetIdx = state.customExercises[muscle].findIndex(c => normalizeName(c.name) === normalizeName(oldName));
+        if (targetIdx !== -1) {
+          // If no other logs in history reference the old name, we rename it directly in library!
+          const otherEntriesExist = state.entries.some(e => 
+            !(e.date === dateStr && e.muscle === muscle && normalizeName(e.exercise) === normalizeName(oldName)) &&
+            normalizeName(e.exercise) === normalizeName(oldName)
+          );
+          
+          if (!otherEntriesExist) {
+            state.customExercises[muscle][targetIdx].name = newName;
+          } else {
+            // Otherwise, keep the old one and add the new one to the library
+            const exists = state.customExercises[muscle].some(ex => normalizeName(ex.name) === normalizeName(newName));
+            if (!exists) {
+              state.customExercises[muscle].push({
+                name: newName,
+                type: type
+              });
+            }
+          }
+        } else {
+          // Add new name to the custom exercises library if it wasn't there
+          const exists = state.customExercises[muscle].some(ex => normalizeName(ex.name) === normalizeName(newName));
+          if (!exists) {
+            state.customExercises[muscle].push({
+              name: newName,
+              type: type
+            });
+          }
+        }
+      }
+    }
+  }
+
   // Trigger positive success feedback
   triggerHaptic([30, 20, 30]);
 
@@ -1625,12 +1736,14 @@ function saveWorkoutEntry() {
     totalTime: computed.totalTime
   };
 
-  // Remove existing duplicate entry if any matching date and exercise
+  // Remove existing duplicate entry (using original name if edited to avoid duplicates)
+  const oldExName = state.originalEditingExercise || state.selectedExercise;
   state.entries = state.entries.filter(e => 
     !(e.date === dateStr && 
       e.muscle === state.selectedMuscle && 
-      normalizeName(e.exercise) === normalizeName(state.selectedExercise))
+      normalizeName(e.exercise) === normalizeName(oldExName))
   );
+  state.originalEditingExercise = null; // Reset original editing name
 
   state.entries.push(newEntry);
   state.entries.sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -1640,14 +1753,14 @@ function saveWorkoutEntry() {
   // Show standard visual success banner animation on saving
   const btnSave = document.getElementById("btnSaveWorkout");
   if (btnSave) {
-    const originalText = btnSave.innerHTML;
-    btnSave.innerHTML = "🎉 ATTACK SAVED!";
+    btnSave.innerHTML = state.isEditing ? "🎉 EDIT SAVED!" : "🎉 ATTACK SAVED!";
     btnSave.className = "btn btn-success";
     btnSave.disabled = true;
     setTimeout(() => {
-      btnSave.innerHTML = originalText;
+      btnSave.innerHTML = "🚀 Save Active Workout Log";
       btnSave.className = "btn btn-primary";
       btnSave.disabled = false;
+      state.isEditing = false; // Turn off editing mode
       // Navigate to Step 2 (recap view) after save
       initRecapView();
     }, 1200);
@@ -3506,35 +3619,51 @@ function triggerExplosionAnimation(x, y) {
 }
 
 function triggerSparklingAnimation(x, y) {
-  const colors = ["var(--accent)", "var(--cyan)", "#ff007f", "#d4af37"];
-  const particleCount = 20;
+  const colors = ["#ffffff", "#ffea79", "#ffaa33", "#ff5500", "#e62200"];
+  const particleCount = 36; // Denser angle-grinder spark shower!
   const container = document.body;
   
+  // Spawn particles progressively over 500ms to match the gear's spin rotation!
   for (let i = 0; i < particleCount; i++) {
-    const spark = document.createElement("div");
-    spark.className = "setting-spark";
-    
-    const color = colors[Math.floor(Math.random() * colors.length)];
-    spark.style.background = color;
-    spark.style.boxShadow = `0 0 10px ${color}, 0 0 20px ${color}`;
-    
-    const angle = Math.random() * Math.PI * 2;
-    const velocity = 25 + Math.random() * 45;
-    const dx = Math.cos(angle) * velocity;
-    const dy = Math.sin(angle) * velocity;
-    
-    spark.style.left = `${x}px`;
-    spark.style.top = `${y}px`;
-    spark.style.width = `${4 + Math.random() * 4}px`;
-    spark.style.height = spark.style.width;
-    spark.style.setProperty("--dx", `${dx}px`);
-    spark.style.setProperty("--dy", `${dy}px`);
-    
-    container.appendChild(spark);
-    
     setTimeout(() => {
-      spark.remove();
-    }, 1500);
+      const wrap = document.createElement("div");
+      wrap.className = "setting-spark-wrap";
+      
+      // Angle increments progressively to create a spinning spiral emitter effect!
+      const spinAngle = (i * (Math.PI * 2 / 12)) + (Math.random() * 0.4);
+      const velocity = 90 + Math.random() * 130; // High speed ejection
+      const dx = Math.cos(spinAngle) * velocity;
+      const dy = Math.sin(spinAngle) * velocity;
+      
+      // Parabolic horizontal drift (sideways wind curvature)
+      const drift = (Math.random() - 0.5) * 80;
+      
+      // Face the travel direction (adding 90deg since it is a vertical element)
+      const rad = spinAngle + Math.PI / 2;
+      
+      wrap.style.left = `${x}px`;
+      wrap.style.top = `${y}px`;
+      wrap.style.setProperty("--dx", `${dx}px`);
+      wrap.style.setProperty("--dy", `${dy}px`);
+      wrap.style.setProperty("--drift", `${drift}px`);
+
+      const core = document.createElement("div");
+      core.className = "setting-spark-core";
+      
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      
+      // Set custom CSS properties to drive the GPU-accelerated curved, sputtering pop keyframe animation!
+      core.style.setProperty("--color", color);
+      core.style.setProperty("--rad", `${rad}rad`);
+      core.style.setProperty("--scale-y", `${1.2 + Math.random() * 1.6}`);
+      
+      wrap.appendChild(core);
+      container.appendChild(wrap);
+      
+      setTimeout(() => {
+        wrap.remove();
+      }, 650); // Burns out fast matching high velocity
+    }, i * 14); // 36 sparks over ~500ms
   }
 }
 
