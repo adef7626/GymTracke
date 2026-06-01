@@ -3072,9 +3072,177 @@ function renderExerciseManagerList(filterText = "") {
       howToPanel.appendChild(stepsList);
 
       const visualDiv = document.createElement("div");
-      visualDiv.className = "ex-howto-visual";
-      visualDiv.innerHTML = `<span style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;z-index:2;">Motion Dynamics: ${guide.visual}</span>`;
-      howToPanel.appendChild(visualDiv);
+      const normExName = normalizeName(ex.name);
+      if (normExName === "chest bench press") {
+        visualDiv.className = "bench-press-anim-container";
+        visualDiv.innerHTML = `
+          <!-- Left Column: Front Kinetics -->
+          <div class="kinetics-view front-view">
+            <div class="dynamics-label">Front Kinetics</div>
+            <div class="bench-press-bench-legs"></div>
+            <div class="bench-press-bench"></div>
+            <div class="bench-press-torso"></div>
+            <div class="bench-press-barbell">
+              <div class="barbell-shaft"></div>
+              <div class="barbell-weight weight-left-inner"></div>
+              <div class="barbell-weight weight-left"></div>
+              <div class="barbell-weight weight-right-inner"></div>
+              <div class="barbell-weight weight-right"></div>
+            </div>
+          </div>
+
+          <!-- Right Column: Side Biomechanics -->
+          <div class="kinetics-view side-view-panel">
+            <div class="dynamics-label">Side Biomechanics</div>
+            <div class="side-bench-legs"></div>
+            <div class="side-bench"></div>
+            <div class="side-lifter-head"></div>
+            <div class="side-lifter-torso"></div>
+            <div class="side-lifter-hips"></div>
+            <div class="side-lifter-leg"></div>
+            <!-- Dotted trajectory trace SVG -->
+            <svg class="side-trajectory-svg" viewBox="0 0 100 80">
+              <path d="M 46 32 Q 54 44 56 58" fill="none" stroke="rgba(0, 246, 237, 0.15)" stroke-width="1.5" stroke-dasharray="2 2" />
+            </svg>
+            <div class="side-barbell">
+              <div class="side-barbell-bar"></div>
+              <div class="side-barbell-plate"></div>
+              <div class="side-barbell-collar"></div>
+            </div>
+          </div>
+
+          <!-- Shared Phase overlay in absolute bottom left -->
+          <div class="dynamics-phase"></div>
+        `;
+      } else if (normExName === "inclined bench press") {
+        visualDiv.className = "bench-press-anim-container incline-mode";
+        visualDiv.innerHTML = `
+          <!-- Left Column: Front Kinetics -->
+          <div class="kinetics-view front-view">
+            <div class="dynamics-label">Front Kinetics</div>
+            <div class="incline-bench-legs-front"></div>
+            <div class="incline-bench-front"></div>
+            <div class="incline-torso-front"></div>
+            <div class="incline-barbell-front">
+              <div class="barbell-shaft"></div>
+              <div class="barbell-weight weight-left-inner"></div>
+              <div class="barbell-weight weight-left"></div>
+              <div class="barbell-weight weight-right-inner"></div>
+              <div class="barbell-weight weight-right"></div>
+            </div>
+          </div>
+
+          <!-- Right Column: Side Biomechanics -->
+          <div class="kinetics-view side-view-panel">
+            <div class="dynamics-label">Side Biomechanics</div>
+            <div class="incline-bench-legs-side"></div>
+            <div class="incline-bench-side"></div>
+            <div class="incline-lifter-head"></div>
+            <div class="incline-lifter-torso"></div>
+            <div class="incline-lifter-hips"></div>
+            <div class="incline-lifter-leg"></div>
+            <!-- Dotted trajectory trace SVG -->
+            <svg class="side-trajectory-svg" viewBox="0 0 100 80">
+              <path d="M 40 30 Q 52 42 58 52" fill="none" stroke="rgba(0, 246, 237, 0.15)" stroke-width="1.5" stroke-dasharray="2 2" />
+            </svg>
+            <div class="incline-barbell-side">
+              <div class="side-barbell-bar"></div>
+              <div class="side-barbell-plate"></div>
+              <div class="side-barbell-collar"></div>
+            </div>
+          </div>
+
+          <!-- Shared Phase overlay in absolute bottom left -->
+          <div class="dynamics-phase"></div>
+        `;
+      } else if (normExName === "back squat") {
+        visualDiv.className = "bench-press-anim-container squat-mode";
+        visualDiv.innerHTML = `
+          <!-- Left Column: Front Kinetics -->
+          <div class="kinetics-view front-view">
+            <div class="dynamics-label">Front Kinetics</div>
+            <div class="squat-rack-legs-front"></div>
+            <div class="squat-lifter-torso-front"></div>
+            <div class="squat-lifter-thighs-front"></div>
+            <div class="squat-barbell-front">
+              <div class="barbell-shaft"></div>
+              <div class="barbell-weight weight-left-inner"></div>
+              <div class="barbell-weight weight-left"></div>
+              <div class="barbell-weight weight-right-inner"></div>
+              <div class="barbell-weight weight-right"></div>
+            </div>
+          </div>
+
+          <!-- Right Column: Side Biomechanics -->
+          <div class="kinetics-view side-view-panel">
+            <div class="dynamics-label">Side Biomechanics</div>
+            <div class="squat-rack-legs-side"></div>
+            <div class="squat-lifter-head-side"></div>
+            <div class="squat-lifter-torso-side"></div>
+            <div class="squat-lifter-thigh-side"></div>
+            <div class="squat-lifter-calf-side"></div>
+            <!-- Dotted trajectory trace SVG -->
+            <svg class="side-trajectory-svg" viewBox="0 0 100 80">
+              <path d="M 50 16 L 50 56" fill="none" stroke="rgba(0, 246, 237, 0.15)" stroke-width="1.5" stroke-dasharray="2 2" />
+            </svg>
+            <div class="squat-barbell-side">
+              <div class="side-barbell-bar"></div>
+              <div class="side-barbell-plate"></div>
+              <div class="side-barbell-collar"></div>
+            </div>
+          </div>
+
+          <!-- Shared Phase overlay in absolute bottom left -->
+          <div class="dynamics-phase"></div>
+        `;
+      } else if (normExName === "deadlift") {
+        visualDiv.className = "bench-press-anim-container deadlift-mode";
+        visualDiv.innerHTML = `
+          <!-- Left Column: Front Kinetics -->
+          <div class="kinetics-view front-view">
+            <div class="dynamics-label">Front Kinetics</div>
+            <div class="deadlift-platform-front"></div>
+            <div class="deadlift-lifter-torso-front"></div>
+            <div class="deadlift-lifter-arms-front"></div>
+            <div class="deadlift-barbell-front">
+              <div class="barbell-shaft"></div>
+              <div class="barbell-weight weight-left-inner"></div>
+              <div class="barbell-weight weight-left"></div>
+              <div class="barbell-weight weight-right-inner"></div>
+              <div class="barbell-weight weight-right"></div>
+            </div>
+          </div>
+
+          <!-- Right Column: Side Biomechanics -->
+          <div class="kinetics-view side-view-panel">
+            <div class="dynamics-label">Side Biomechanics</div>
+            <div class="deadlift-platform-side"></div>
+            <div class="deadlift-lifter-hips-side"></div>
+            <div class="deadlift-lifter-torso-side"></div>
+            <div class="deadlift-lifter-thigh-side"></div>
+            <div class="deadlift-lifter-calf-side"></div>
+            <div class="deadlift-lifter-arm-side"></div>
+            <!-- Dotted trajectory trace SVG -->
+            <svg class="side-trajectory-svg" viewBox="0 0 100 80">
+              <path d="M 50 56 L 50 25" fill="none" stroke="rgba(0, 246, 237, 0.15)" stroke-width="1.5" stroke-dasharray="2 2" />
+            </svg>
+            <div class="deadlift-barbell-side">
+              <div class="side-barbell-bar"></div>
+              <div class="side-barbell-plate"></div>
+              <div class="side-barbell-collar"></div>
+            </div>
+          </div>
+
+          <!-- Shared Phase overlay in absolute bottom left -->
+          <div class="dynamics-phase"></div>
+        `;
+      } else {
+        visualDiv.style.display = "none";
+      }
+      
+      if (visualDiv.style.display !== "none") {
+        howToPanel.appendChild(visualDiv);
+      }
 
       item.appendChild(howToPanel);
 
@@ -3680,27 +3848,77 @@ function triggerSparklingAnimation(x, y) {
       
       wrap.style.left = `${x}px`;
       wrap.style.top = `${y}px`;
-      wrap.style.setProperty("--dx", `${dx}px`);
-      wrap.style.setProperty("--dy", `${dy}px`);
-      wrap.style.setProperty("--drift", `${drift}px`);
-      wrap.style.setProperty("--g", `${g}px`);
-
+      
       const core = document.createElement("div");
       core.className = "setting-spark-core";
       
       const color = colors[Math.floor(Math.random() * colors.length)];
+      const scaleY = 1.4 + Math.random() * 1.8; // Physically stretched streaks
       
-      // Set custom CSS variables to feed the GPU-accelerated steering and sputtering keyframes!
-      core.style.setProperty("--color", color);
-      core.style.setProperty("--rad-start", `${radStart}rad`);
-      core.style.setProperty("--rad-end", `${radEnd}rad`);
-      core.style.setProperty("--scale-y", `${1.4 + Math.random() * 1.8}`); // Physically stretched streaks
+      // Dynamically inject custom keyframes for this spark to support iOS Safari (WebKit bug workaround)
+      const animId = `spark-anim-${Math.random().toString(36).substr(2, 9)}`;
+      const keyframes = `
+        @keyframes ${animId} {
+          0% {
+            transform: translate3d(0, 0, 0) rotate(${radStart}rad) scaleY(0.1);
+            box-shadow: 0 0 4px ${color}, 0 0 1px #ffffff;
+            background: linear-gradient(to top, rgba(255, 50, 0, 0) 0%, rgba(255, 100, 0, 0.4) 20%, ${color} 60%, #ffffff 100%);
+            opacity: 1;
+          }
+          20% {
+            transform: translate3d(${dx * 0.28}px, ${dy * 0.28 + g * 0.0625}px, 0) rotate(${radStart * 0.8 + radEnd * 0.2}rad) scaleY(${scaleY});
+            box-shadow: 0 0 5px ${color}, 0 0 1.5px #ffffff;
+            background: linear-gradient(to top, rgba(255, 50, 0, 0) 0%, rgba(255, 100, 0, 0.4) 20%, ${color} 60%, #ffffff 100%);
+          }
+          70% {
+            transform: translate3d(${dx * 0.53}px, ${dy * 0.53 + g * 0.25}px, 0) rotate(${radStart * 0.35 + radEnd * 0.65}rad) scaleY(${scaleY});
+            box-shadow: 0 0 5px ${color}, 0 0 1.5px #ffffff;
+            background: linear-gradient(to top, rgba(255, 50, 0, 0) 0%, rgba(255, 100, 0, 0.4) 20%, ${color} 60%, #ffffff 100%);
+            opacity: 0.95;
+          }
+          75% {
+            transform: translate3d(${dx * 0.78}px, ${dy * 0.78 + g * 0.5625}px, 0) rotate(${radStart * 0.15 + radEnd * 0.85}rad) scaleY(0.25);
+            box-shadow: 0 0 6px ${color}, 0 0 2px #ffffff;
+            background: #ffffff;
+            opacity: 1;
+          }
+          80% {
+            transform: translate3d(${dx * 0.95}px, ${dy + g}px, 0) rotate(${radEnd}rad) scaleY(0.15);
+            background: #ffffff;
+            box-shadow: 
+              0 0 5px ${color},
+              -4px -4px 3px ${color},
+              4px -4px 3px ${color},
+              -4px 4px 3px ${color},
+              4px 4px 3px ${color};
+            opacity: 1;
+          }
+          100% {
+            transform: translate3d(${dx * 0.95 + drift}px, ${dy + g}px, 0) rotate(${radEnd}rad) scaleY(0.01);
+            background: transparent;
+            box-shadow: 
+              0 0 2px ${color},
+              -12px -12px 6px transparent,
+              12px -12px 6px transparent,
+              -12px 12px 6px transparent,
+              12px 12px 6px transparent;
+            opacity: 0;
+          }
+        }
+      `;
+      
+      const styleSheet = document.createElement("style");
+      styleSheet.innerText = keyframes;
+      document.head.appendChild(styleSheet);
+      
+      core.style.animation = `${animId} 0.65s cubic-bezier(0.05, 0.6, 0.2, 1) forwards`;
       
       wrap.appendChild(core);
       container.appendChild(wrap);
       
       setTimeout(() => {
         wrap.remove();
+        styleSheet.remove();
       }, 650); // Burns out fast matching high velocity
     }, i * 14); // 36 sparks over ~500ms
   }

@@ -1737,44 +1737,71 @@ body.focus-active {
     transform: translate3d(0, 0, 0);
     opacity: 1;
   }
-  30% {
-    /* Initiate early curved flight with small wind/sideways drift */
-    transform: translate3d(calc(var(--dx) * 0.55 + var(--drift) * 0.1), calc(var(--dy) * 0.55 - 12px), 0);
+  25% {
+    /* t = 0.25: linear horizontal displacement, parabolic accelerated gravity drop */
+    transform: translate3d(
+      calc(var(--dx) * 0.28 + var(--drift) * 0.05),
+      calc(var(--dy) * 0.28 + var(--g) * 0.0625),
+      0
+    );
+    opacity: 1;
+  }
+  50% {
+    /* t = 0.50: middle flight arc */
+    transform: translate3d(
+      calc(var(--dx) * 0.53 + var(--drift) * 0.25),
+      calc(var(--dy) * 0.53 + var(--g) * 0.25),
+      0
+    );
+    opacity: 1;
+  }
+  75% {
+    /* t = 0.75: steepening curve descent */
+    transform: translate3d(
+      calc(var(--dx) * 0.78 + var(--drift) * 0.60),
+      calc(var(--dy) * 0.78 + var(--g) * 0.5625),
+      0
+    );
     opacity: 1;
   }
   100% {
-    /* Beautiful parabolic arch curving sideways due to air drift, and downwards due to gravity */
-    transform: translate3d(calc(var(--dx) + var(--drift)), calc(var(--dy) + 180px), 0);
+    /* t = 1.00: fully parabolic end position */
+    transform: translate3d(
+      calc(var(--dx) * 0.95 + var(--drift)),
+      calc(var(--dy) + var(--g)),
+      0
+    );
     opacity: 0;
   }
 }
 @keyframes spark-sputter {
   0% {
-    transform: rotate(var(--rad)) scaleY(0.1);
+    transform: rotate(var(--rad-start)) scaleY(0.1);
     box-shadow: 0 0 4px var(--color), 0 0 1px #ffffff;
     background: linear-gradient(to top, rgba(255, 50, 0, 0) 0%, rgba(255, 100, 0, 0.4) 20%, var(--color) 60%, #ffffff 100%);
   }
   20% {
-    transform: rotate(var(--rad)) scaleY(var(--scale-y));
+    /* Rotate dynamically to align perfectly with the curve's tangential vector */
+    transform: rotate(calc(var(--rad-start) * 0.8 + var(--rad-end) * 0.2)) scaleY(var(--scale-y));
     box-shadow: 0 0 5px var(--color), 0 0 1.5px #ffffff;
     background: linear-gradient(to top, rgba(255, 50, 0, 0) 0%, rgba(255, 100, 0, 0.4) 20%, var(--color) 60%, #ffffff 100%);
   }
   70% {
-    transform: rotate(var(--rad)) scaleY(var(--scale-y));
+    transform: rotate(calc(var(--rad-start) * 0.35 + var(--rad-end) * 0.65)) scaleY(var(--scale-y));
     box-shadow: 0 0 5px var(--color), 0 0 1.5px #ffffff;
     background: linear-gradient(to top, rgba(255, 50, 0, 0) 0%, rgba(255, 100, 0, 0.4) 20%, var(--color) 60%, #ffffff 100%);
     opacity: 0.95;
   }
   75% {
-    /* Streak collapses into a bright white point just before carbon pop */
-    transform: rotate(var(--rad)) scaleY(0.25);
+    /* Collapse streak into a bright white point just before carbon pop */
+    transform: rotate(calc(var(--rad-start) * 0.15 + var(--rad-end) * 0.85)) scaleY(0.25);
     box-shadow: 0 0 6px var(--color), 0 0 2px #ffffff;
     background: #ffffff;
     opacity: 1;
   }
   80% {
     /* Explosive Carbon Pop! Splitting into 4 glowing micro-embers */
-    transform: rotate(var(--rad)) scaleY(0.15);
+    transform: rotate(var(--rad-end)) scaleY(0.15);
     background: #ffffff;
     box-shadow: 
       0 0 5px var(--color),
@@ -1786,7 +1813,7 @@ body.focus-active {
   }
   100% {
     /* Embers expand outwards to represent sputtering sparks cooling down */
-    transform: rotate(var(--rad)) scaleY(0.01);
+    transform: rotate(var(--rad-end)) scaleY(0.01);
     background: transparent;
     box-shadow: 
       0 0 2px var(--color),
@@ -1855,4 +1882,1132 @@ select.mode-select {
 select#modeSelect option,
 select.mode-select option {
   text-align: center !important;
+}
+
+/* ================================================
+   Custom Bench Press Motion Dynamics
+   ================================================ */
+.bench-press-anim-container {
+  position: relative;
+  width: 100%;
+  height: 100px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: rgba(3, 4, 12, 0.85);
+  border: 1px dashed rgba(0, 246, 237, 0.25);
+  background-image: radial-gradient(rgba(0, 246, 237, 0.03) 1px, transparent 1px);
+  background-size: 8px 8px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.95);
+}
+
+/* Center dividing dashed line */
+.bench-press-anim-container::after {
+  content: "";
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  left: 50%;
+  width: 1px;
+  border-left: 1px dashed rgba(255, 255, 255, 0.12);
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* Panel Layouts */
+.kinetics-view {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dynamics-label {
+  position: absolute;
+  top: 6px;
+  left: 10px;
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  z-index: 4;
+}
+
+.dynamics-phase {
+  position: absolute;
+  bottom: 6px;
+  left: 10px;
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  z-index: 4;
+  animation: phase-label-pulse 3s infinite steps(1);
+}
+
+.dynamics-phase::after {
+  content: "LOCKOUT";
+  animation: phase-text-anim 3s infinite steps(1);
+}
+
+/* ================================================
+   FRONT KINETICS (Left Half)
+   ================================================ */
+.front-view .bench-press-bench {
+  position: absolute;
+  bottom: 25px;
+  width: 90px;
+  height: 4px;
+  background: #3a3d52;
+  border-radius: 2px;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+  z-index: 1;
+}
+
+.front-view .bench-press-bench-legs {
+  position: absolute;
+  bottom: 5px;
+  width: 66px;
+  height: 20px;
+  border-left: 3px solid #202230;
+  border-right: 3px solid #202230;
+  z-index: 1;
+}
+
+.front-view .bench-press-torso {
+  position: absolute;
+  bottom: 29px;
+  width: 26px;
+  height: 14px;
+  border-radius: 12px 12px 0 0;
+  background: rgba(0, 246, 237, 0.08);
+  border: 1.5px solid var(--cyan);
+  box-shadow: 0 0 6px rgba(0, 246, 237, 0.15);
+  z-index: 2;
+  animation: chest-contract 3s infinite ease-in-out;
+}
+
+.front-view .bench-press-barbell {
+  position: absolute;
+  width: 110px;
+  bottom: 31px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  animation: bench-press-motion 3s infinite ease-in-out;
+}
+
+.front-view .barbell-shaft {
+  width: 100%;
+  height: 2px;
+  background: #e0e0e0;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
+}
+
+.front-view .barbell-weight {
+  position: absolute;
+  width: 5px;
+  height: 18px;
+  background: var(--accent);
+  border: 1px solid #ffffff;
+  border-radius: 1px;
+  box-shadow: 0 0 5px var(--accent);
+}
+
+.front-view .weight-left { left: 4px; }
+.front-view .weight-right { right: 4px; }
+.front-view .weight-left-inner {
+  left: 11px;
+  width: 3px;
+  height: 14px;
+  background: #555555;
+  border-radius: 1px;
+}
+.front-view .weight-right-inner {
+  right: 11px;
+  width: 3px;
+  height: 14px;
+  background: #555555;
+  border-radius: 1px;
+}
+
+/* ================================================
+   SIDE BIOMECHANICS (Right Half)
+   ================================================ */
+.side-view-panel .side-bench {
+  position: absolute;
+  bottom: 25px;
+  left: 15px;
+  width: 70px;
+  height: 4px;
+  background: #3a3d52;
+  border-radius: 2px;
+  z-index: 1;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+}
+
+.side-view-panel .side-bench-legs {
+  position: absolute;
+  bottom: 5px;
+  left: 20px;
+  width: 55px;
+  height: 20px;
+  border-left: 3px solid #202230;
+  border-right: 3px solid #202230;
+  z-index: 1;
+}
+
+.side-view-panel .side-lifter-head {
+  position: absolute;
+  bottom: 29px;
+  left: 18px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(0, 246, 237, 0.08);
+  border: 1.5px solid var(--cyan);
+  box-shadow: 0 0 4px rgba(0, 246, 237, 0.15);
+  z-index: 2;
+}
+
+.side-view-panel .side-lifter-hips {
+  position: absolute;
+  bottom: 29px;
+  left: 68px;
+  width: 13px;
+  height: 9px;
+  border-radius: 3px;
+  background: rgba(0, 246, 237, 0.08);
+  border: 1.5px solid var(--cyan);
+  box-shadow: 0 0 4px rgba(0, 246, 237, 0.15);
+  z-index: 2;
+}
+
+.side-view-panel .side-lifter-torso {
+  position: absolute;
+  bottom: 29px;
+  left: 27px;
+  width: 41px;
+  height: 16px;
+  border-radius: 16px 16px 0 0;
+  background: rgba(0, 246, 237, 0.08);
+  border: 1.5px solid var(--cyan);
+  border-bottom: none;
+  z-index: 2;
+  transform-origin: center bottom;
+  animation: side-chest-contract 3s infinite ease-in-out;
+}
+
+.side-view-panel .side-lifter-leg {
+  position: absolute;
+  bottom: 5px;
+  left: 74px;
+  width: 14px;
+  height: 24px;
+  border-top: 2.5px solid var(--cyan);
+  border-right: 2.5px solid var(--cyan);
+  border-radius: 0 4px 0 0;
+  box-shadow: 1px -1px 4px rgba(0, 246, 237, 0.1);
+  z-index: 2;
+}
+
+/* Glowing side J-curve trajectory helper path in background */
+.side-view-panel .side-trajectory-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.side-view-panel .side-barbell {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  left: 42px;
+  bottom: 31px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  animation: side-barbell-motion 3s infinite ease-in-out;
+}
+
+.side-view-panel .side-barbell-bar {
+  width: 16px;
+  height: 2px;
+  background: #e0e0e0;
+  box-shadow: 0 0 3px rgba(255, 255, 255, 0.5);
+  position: absolute;
+}
+
+.side-view-panel .side-barbell-plate {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 1px solid #ffffff;
+  box-shadow: 0 0 6px var(--accent);
+  position: absolute;
+  z-index: 1;
+}
+
+.side-view-panel .side-barbell-collar {
+  width: 3px;
+  height: 8px;
+  background: #555555;
+  border-radius: 1px;
+  position: absolute;
+  left: -2px;
+  z-index: 2;
+}
+
+/* ================================================
+   FLIGHT MECHANICS AND DEFORMATION TIMINGS
+   ================================================ */
+@keyframes bench-press-motion {
+  0%, 100% {
+    transform: translate3d(0, -27px, 0);
+    animation-timing-function: cubic-bezier(0.4, 0, 1, 1); /* Control descending */
+  }
+  42% {
+    transform: translate3d(0, 0, 0);
+    animation-timing-function: linear;
+  }
+  55% {
+    transform: translate3d(0, 0, 0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1); /* Fast acceleration up */
+  }
+  82% {
+    transform: translate3d(0, -27px, 0);
+    animation-timing-function: linear;
+  }
+}
+
+@keyframes side-barbell-motion {
+  0%, 100% {
+    transform: translate3d(0, -27px, 0);
+    animation-timing-function: cubic-bezier(0.4, 0, 0.8, 0.8);
+  }
+  42% {
+    transform: translate3d(14px, 0, 0);
+    animation-timing-function: linear;
+  }
+  55% {
+    transform: translate3d(14px, 0, 0);
+    animation-timing-function: cubic-bezier(0.1, 0.8, 0.3, 1); /* S-curve drive back up */
+  }
+  82% {
+    transform: translate3d(0, -27px, 0);
+    animation-timing-function: linear;
+  }
+}
+
+@keyframes chest-contract {
+  0%, 100% {
+    background: rgba(0, 246, 237, 0.08);
+    border-color: var(--cyan);
+    box-shadow: 0 0 6px rgba(0, 246, 237, 0.15);
+    transform: scaleY(1);
+  }
+  42%, 55% {
+    background: rgba(255, 60, 0, 0.18); /* Deep stretch muscle loading */
+    border-color: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+    transform: scaleY(0.85); /* Chest compressed under bar weight */
+  }
+  82% {
+    background: rgba(0, 246, 237, 0.3); /* Peak concentric contraction */
+    border-color: var(--cyan);
+    box-shadow: 0 0 12px var(--cyan);
+    transform: scaleY(1.08);
+  }
+}
+
+@keyframes side-chest-contract {
+  0%, 100% {
+    background: rgba(0, 246, 237, 0.08);
+    border-color: var(--cyan);
+    box-shadow: 0 0 6px rgba(0, 246, 237, 0.15);
+    transform: scaleY(1);
+  }
+  42%, 55% {
+    background: rgba(255, 60, 0, 0.18);
+    border-color: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+    transform: scaleY(0.8125); /* Chest compressed under bar weight */
+  }
+  82% {
+    background: rgba(0, 246, 237, 0.3);
+    border-color: var(--cyan);
+    box-shadow: 0 0 12px var(--cyan);
+    transform: scaleY(1.0625);
+  }
+}
+
+@keyframes phase-label-pulse {
+  0%, 15%, 100% {
+    color: var(--cyan);
+  }
+  20%, 40% {
+    color: #ffaa33;
+  }
+  42%, 55% {
+    color: var(--danger);
+  }
+  60%, 90% {
+    color: var(--success);
+  }
+}
+
+@keyframes phase-text-anim {
+  0%, 15%, 100% {
+    content: "LOCKOUT";
+  }
+  20%, 40% {
+    content: "DESCENDING (ECCENTRIC)";
+  }
+  42%, 55% {
+    content: "ACTIVE PAUSE";
+  }
+  60%, 90% {
+    content: "DRIVING (CONCENTRIC)";
+  }
+}
+
+/* ==========================================================================
+   INCLINE BENCH PRESS MOTION DYNAMICS
+   ========================================================================== */
+.incline-mode .incline-bench-front {
+  position: absolute;
+  bottom: 27px;
+  width: 90px;
+  height: 4px;
+  background: #3a3d52;
+  border-radius: 2px;
+  transform: rotate(-15deg);
+  z-index: 1;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+}
+
+.incline-mode .incline-bench-legs-front {
+  position: absolute;
+  bottom: 5px;
+  width: 66px;
+  height: 22px;
+  border-left: 3px solid #202230;
+  border-right: 3px solid #202230;
+  z-index: 1;
+}
+
+.incline-mode .incline-torso-front {
+  position: absolute;
+  bottom: 30px;
+  width: 26px;
+  height: 14px;
+  border-radius: 12px 12px 0 0;
+  background: rgba(0, 246, 237, 0.08);
+  border: 1.5px solid var(--cyan);
+  box-shadow: 0 0 6px rgba(0, 246, 237, 0.15);
+  z-index: 2;
+  transform: skewX(-8deg);
+  animation: incline-chest-contract 3s infinite ease-in-out;
+}
+
+.incline-mode .incline-barbell-front {
+  position: absolute;
+  width: 110px;
+  bottom: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  animation: incline-bench-press-motion 3s infinite ease-in-out;
+}
+
+.incline-mode .incline-bench-side {
+  position: absolute;
+  bottom: 25px;
+  left: 15px;
+  width: 70px;
+  height: 4px;
+  background: #3a3d52;
+  border-radius: 2px;
+  z-index: 1;
+  transform: rotate(-30deg);
+  transform-origin: left center;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+}
+
+.incline-mode .incline-bench-legs-side {
+  position: absolute;
+  bottom: 5px;
+  left: 20px;
+  width: 55px;
+  height: 23px;
+  border-left: 3px solid #202230;
+  border-right: 3px solid #202230;
+  z-index: 1;
+}
+
+.incline-mode .incline-lifter-head {
+  position: absolute;
+  bottom: 48px;
+  left: 20px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(0, 246, 237, 0.08);
+  border: 1.5px solid var(--cyan);
+  box-shadow: 0 0 4px rgba(0, 246, 237, 0.15);
+  z-index: 2;
+}
+
+.incline-mode .incline-lifter-hips {
+  position: absolute;
+  bottom: 25px;
+  left: 64px;
+  width: 12px;
+  height: 9px;
+  border-radius: 3px;
+  background: rgba(0, 246, 237, 0.08);
+  border: 1.5px solid var(--cyan);
+  box-shadow: 0 0 4px rgba(0, 246, 237, 0.15);
+  z-index: 2;
+}
+
+.incline-mode .incline-lifter-torso {
+  position: absolute;
+  bottom: 28px;
+  left: 26px;
+  width: 40px;
+  height: 14px;
+  border-radius: 12px 12px 0 0;
+  background: rgba(0, 246, 237, 0.08);
+  border: 1.5px solid var(--cyan);
+  border-bottom: none;
+  z-index: 2;
+  transform: rotate(-30deg);
+  transform-origin: left bottom;
+  animation: incline-side-chest-contract 3s infinite ease-in-out;
+}
+
+.incline-mode .incline-lifter-leg {
+  position: absolute;
+  bottom: 5px;
+  left: 70px;
+  width: 14px;
+  height: 20px;
+  border-top: 2.5px solid var(--cyan);
+  border-right: 2.5px solid var(--cyan);
+  border-radius: 0 4px 0 0;
+  z-index: 2;
+  box-shadow: 1px -1px 4px rgba(0, 246, 237, 0.1);
+}
+
+.incline-mode .incline-barbell-side {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  left: 34px;
+  bottom: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  animation: incline-side-barbell-motion 3s infinite ease-in-out;
+}
+
+@keyframes incline-bench-press-motion {
+  0%, 100% {
+    transform: translate3d(0, -20px, 0);
+    animation-timing-function: cubic-bezier(0.4, 0, 1, 1);
+  }
+  42% {
+    transform: translate3d(0, 0, 0);
+    animation-timing-function: linear;
+  }
+  55% {
+    transform: translate3d(0, 0, 0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+  82% {
+    transform: translate3d(0, -20px, 0);
+    animation-timing-function: linear;
+  }
+}
+
+@keyframes incline-side-barbell-motion {
+  0%, 100% {
+    transform: translate3d(0, -16px, 0);
+    animation-timing-function: cubic-bezier(0.4, 0, 0.8, 0.8);
+  }
+  42% {
+    transform: translate3d(14px, 0, 0);
+    animation-timing-function: linear;
+  }
+  55% {
+    transform: translate3d(14px, 0, 0);
+    animation-timing-function: cubic-bezier(0.1, 0.8, 0.3, 1);
+  }
+  82% {
+    transform: translate3d(0, -16px, 0);
+    animation-timing-function: linear;
+  }
+}
+
+@keyframes incline-chest-contract {
+  0%, 100% {
+    background: rgba(0, 246, 237, 0.08);
+    border-color: var(--cyan);
+    box-shadow: 0 0 6px rgba(0, 246, 237, 0.15);
+    transform: skewX(-8deg) scaleY(1);
+  }
+  42%, 55% {
+    background: rgba(255, 60, 0, 0.18);
+    border-color: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+    transform: skewX(-8deg) scaleY(0.85);
+  }
+  82% {
+    background: rgba(0, 246, 237, 0.3);
+    border-color: var(--cyan);
+    box-shadow: 0 0 12px var(--cyan);
+    transform: skewX(-8deg) scaleY(1.08);
+  }
+}
+
+@keyframes incline-side-chest-contract {
+  0%, 100% {
+    background: rgba(0, 246, 237, 0.08);
+    border-color: var(--cyan);
+    box-shadow: 0 0 6px rgba(0, 246, 237, 0.15);
+    transform: rotate(-30deg) scaleY(1);
+  }
+  42%, 55% {
+    background: rgba(255, 60, 0, 0.18);
+    border-color: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+    transform: rotate(-30deg) scaleY(0.85);
+  }
+  82% {
+    background: rgba(0, 246, 237, 0.3);
+    border-color: var(--cyan);
+    box-shadow: 0 0 12px var(--cyan);
+    transform: rotate(-30deg) scaleY(1.08);
+  }
+}
+
+/* ==========================================================================
+   BACK SQUAT MOTION DYNAMICS
+   ========================================================================== */
+.squat-mode .squat-rack-legs-front {
+  position: absolute;
+  bottom: 5px;
+  width: 80px;
+  height: 75px;
+  border-left: 2px dashed rgba(255, 255, 255, 0.15);
+  border-right: 2px dashed rgba(255, 255, 255, 0.15);
+  z-index: 1;
+}
+
+.squat-mode .squat-lifter-torso-front {
+  position: absolute;
+  bottom: 15px;
+  left: calc(50% - 10px);
+  width: 20px;
+  height: 35px;
+  border-radius: 4px;
+  background: rgba(0, 246, 237, 0.08);
+  border: 1.5px solid var(--cyan);
+  z-index: 2;
+  transform-origin: center bottom;
+  animation: squat-torso-front-scale 3s infinite ease-in-out;
+}
+
+.squat-mode .squat-lifter-thighs-front {
+  position: absolute;
+  bottom: 5px;
+  left: calc(50% - 18px);
+  width: 36px;
+  height: 12px;
+  border-left: 3.5px solid var(--cyan);
+  border-right: 3.5px solid var(--cyan);
+  border-radius: 4px 4px 0 0;
+  z-index: 2;
+  transform-origin: center bottom;
+  animation: squat-thighs-front-bend 3s infinite ease-in-out;
+}
+
+.squat-mode .squat-barbell-front {
+  position: absolute;
+  width: 110px;
+  bottom: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  animation: squat-barbell-motion-front 3s infinite ease-in-out;
+}
+
+.squat-mode .squat-rack-legs-side {
+  position: absolute;
+  bottom: 5px;
+  left: 45px;
+  width: 10px;
+  height: 75px;
+  border-left: 2px dashed rgba(255, 255, 255, 0.15);
+  z-index: 1;
+}
+
+.squat-mode .squat-lifter-head-side {
+  position: absolute;
+  bottom: 32px;
+  left: 40px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(0, 246, 237, 0.08);
+  border: 1.5px solid var(--cyan);
+  z-index: 2;
+  animation: squat-head-motion-side 3s infinite ease-in-out;
+}
+
+.squat-mode .squat-lifter-torso-side {
+  position: absolute;
+  bottom: 20px;
+  left: 34px;
+  width: 8px;
+  height: 26px;
+  background: rgba(0, 246, 237, 0.08);
+  border: 1.5px solid var(--cyan);
+  border-radius: 4px;
+  z-index: 2;
+  transform-origin: center bottom;
+  animation: squat-torso-side-lean 3s infinite ease-in-out;
+}
+
+.squat-mode .squat-lifter-thigh-side {
+  position: absolute;
+  bottom: 16px;
+  left: 34px;
+  width: 25px;
+  height: 18px;
+  border-top: 2.5px solid var(--cyan);
+  z-index: 2;
+  transform-origin: left top;
+  animation: squat-thigh-side-hinge 3s infinite ease-in-out;
+}
+
+.squat-mode .squat-lifter-calf-side {
+  position: absolute;
+  bottom: 5px;
+  left: 41px;
+  width: 10px;
+  height: 19px;
+  border-right: 2.5px solid var(--cyan);
+  z-index: 2;
+  transform-origin: right bottom;
+  animation: squat-calf-side-angle 3s infinite ease-in-out;
+}
+
+.squat-mode .squat-barbell-side {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  left: 40px;
+  bottom: 27px;
+  animation: squat-barbell-motion-side 3s infinite ease-in-out;
+}
+
+@keyframes squat-barbell-motion-front {
+  0%, 100% {
+    transform: translate3d(0, -35px, 0);
+    animation-timing-function: cubic-bezier(0.4, 0, 1, 1);
+  }
+  42% {
+    transform: translate3d(0, 0, 0);
+    animation-timing-function: linear;
+  }
+  55% {
+    transform: translate3d(0, 0, 0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+  82% {
+    transform: translate3d(0, -35px, 0);
+    animation-timing-function: linear;
+  }
+}
+
+@keyframes squat-barbell-motion-side {
+  0%, 100% {
+    transform: translate3d(0, -35px, 0);
+    animation-timing-function: cubic-bezier(0.4, 0, 1, 1);
+  }
+  42% {
+    transform: translate3d(0, 0, 0);
+    animation-timing-function: linear;
+  }
+  55% {
+    transform: translate3d(0, 0, 0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+  82% {
+    transform: translate3d(0, -35px, 0);
+    animation-timing-function: linear;
+  }
+}
+
+@keyframes squat-torso-front-scale {
+  0%, 100% {
+    transform: translate3d(0, -15px, 0) scaleY(1);
+    background: rgba(0, 246, 237, 0.08);
+    border-color: var(--cyan);
+  }
+  42%, 55% {
+    transform: translate3d(0, 0, 0) scaleY(0.8);
+    background: rgba(255, 60, 0, 0.18);
+    border-color: var(--accent);
+  }
+  82% {
+    transform: translate3d(0, -15px, 0) scaleY(1.05);
+    background: rgba(0, 246, 237, 0.3);
+    border-color: var(--cyan);
+  }
+}
+
+@keyframes squat-thighs-front-bend {
+  0%, 100% {
+    transform: scaleY(2.167);
+  }
+  42%, 55% {
+    transform: scaleY(1);
+  }
+  82% {
+    transform: scaleY(2.167);
+  }
+}
+
+@keyframes squat-head-motion-side {
+  0%, 100% {
+    transform: translate3d(8px, -36px, 0);
+  }
+  42%, 55% {
+    transform: translate3d(0, 0, 0);
+  }
+  82% {
+    transform: translate3d(8px, -36px, 0);
+  }
+}
+
+@keyframes squat-torso-side-lean {
+  0%, 100% {
+    transform: translate3d(13px, -20px, 0) rotate(0deg);
+    background: rgba(0, 246, 237, 0.08);
+    border-color: var(--cyan);
+  }
+  42%, 55% {
+    transform: translate3d(0, 0, 0) rotate(-25deg);
+    background: rgba(255, 60, 0, 0.18);
+    border-color: var(--accent);
+  }
+  82% {
+    transform: translate3d(13px, -20px, 0) rotate(0deg);
+    background: rgba(0, 246, 237, 0.3);
+    border-color: var(--cyan);
+  }
+}
+
+@keyframes squat-thigh-side-hinge {
+  0%, 100% {
+    transform: rotate(50deg) translate3d(13px, -7px, 0);
+  }
+  42%, 55% {
+    transform: rotate(115deg) translate3d(0, 0, 0);
+  }
+  82% {
+    transform: rotate(50deg) translate3d(13px, -7px, 0);
+  }
+}
+
+@keyframes squat-calf-side-angle {
+  0%, 100% {
+    transform: rotate(0deg) translate3d(6px, 0, 0);
+  }
+  42%, 55% {
+    transform: rotate(20deg) translate3d(0, 0, 0);
+  }
+  82% {
+    transform: rotate(0deg) translate3d(6px, 0, 0);
+  }
+}
+
+/* ==========================================================================
+   DEADLIFT MOTION DYNAMICS
+   ========================================================================== */
+.deadlift-mode .deadlift-platform-front {
+  position: absolute;
+  bottom: 5px;
+  width: 90px;
+  height: 3px;
+  background: #3a3d52;
+  z-index: 1;
+}
+
+.deadlift-mode .deadlift-lifter-torso-front {
+  position: absolute;
+  bottom: 8px;
+  left: calc(50% - 9px);
+  width: 18px;
+  height: 40px;
+  border-radius: 3px;
+  background: rgba(0, 246, 237, 0.08);
+  border: 1.5px solid var(--cyan);
+  z-index: 2;
+  transform-origin: center bottom;
+  animation: deadlift-torso-front-scale 3s infinite ease-in-out;
+}
+
+.deadlift-mode .deadlift-lifter-arms-front {
+  position: absolute;
+  bottom: 8px;
+  left: calc(50% - 15px);
+  width: 30px;
+  height: 32px;
+  border-left: 2px solid var(--cyan);
+  border-right: 2px solid var(--cyan);
+  z-index: 2;
+  transform-origin: center bottom;
+  animation: deadlift-arms-front-pull 3s infinite ease-in-out;
+}
+
+.deadlift-mode .deadlift-barbell-front {
+  position: absolute;
+  width: 110px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  animation: deadlift-barbell-motion-front 3s infinite ease-in-out;
+}
+
+.deadlift-mode .deadlift-platform-side {
+  position: absolute;
+  bottom: 5px;
+  left: 15px;
+  width: 70px;
+  height: 3px;
+  background: #3a3d52;
+  z-index: 1;
+}
+
+.deadlift-mode .deadlift-lifter-hips-side {
+  position: absolute;
+  bottom: 18px;
+  left: 42px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(0, 246, 237, 0.08);
+  border: 1.5px solid var(--cyan);
+  z-index: 2;
+  animation: deadlift-hips-motion-side 3s infinite ease-in-out;
+}
+
+.deadlift-mode .deadlift-lifter-torso-side {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  width: 30px;
+  height: 8px;
+  background: rgba(0, 246, 237, 0.08);
+  border: 1.5px solid var(--cyan);
+  border-radius: 3px;
+  z-index: 2;
+  transform-origin: right center;
+  animation: deadlift-torso-side-hinge 3s infinite ease-in-out;
+}
+
+.deadlift-mode .deadlift-lifter-thigh-side {
+  position: absolute;
+  bottom: 8px;
+  left: 42px;
+  width: 12px;
+  height: 14px;
+  border-top: 2.5px solid var(--cyan);
+  z-index: 2;
+  transform-origin: left top;
+  animation: deadlift-thigh-side-drive 3s infinite ease-in-out;
+}
+
+.deadlift-mode .deadlift-lifter-calf-side {
+  position: absolute;
+  bottom: 5px;
+  left: 48px;
+  width: 3px;
+  height: 12px;
+  background: var(--cyan);
+  z-index: 2;
+}
+
+.deadlift-mode .deadlift-lifter-arm-side {
+  position: absolute;
+  bottom: 8px;
+  left: 36px;
+  width: 2px;
+  height: 25px;
+  background: var(--cyan);
+  z-index: 2;
+  transform-origin: top center;
+  animation: deadlift-arm-side-hang 3s infinite ease-in-out;
+}
+
+.deadlift-mode .deadlift-barbell-side {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  left: 28px;
+  bottom: 8px;
+  animation: deadlift-barbell-motion-side 3s infinite ease-in-out;
+}
+
+@keyframes deadlift-barbell-motion-front {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+    animation-timing-function: cubic-bezier(0.4, 0, 1, 1);
+  }
+  42% {
+    transform: translate3d(0, 0, 0);
+    animation-timing-function: linear;
+  }
+  55% {
+    transform: translate3d(0, 0, 0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+  82% {
+    transform: translate3d(0, 30px, 0);
+    animation-timing-function: linear;
+  }
+}
+
+@keyframes deadlift-barbell-motion-side {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+    animation-timing-function: cubic-bezier(0.4, 0, 1, 1);
+  }
+  42% {
+    transform: translate3d(0, 0, 0);
+    animation-timing-function: linear;
+  }
+  55% {
+    transform: translate3d(0, 0, 0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+  82% {
+    transform: translate3d(6px, 30px, 0);
+    animation-timing-function: linear;
+  }
+}
+
+@keyframes deadlift-torso-front-scale {
+  0%, 100% {
+    transform: scaleY(0.7) translate3d(0, 0, 0);
+    background: rgba(255, 60, 0, 0.18);
+    border-color: var(--accent);
+    box-shadow: 0 0 6px var(--accent-glow);
+  }
+  42%, 55% {
+    transform: scaleY(0.7) translate3d(0, 0, 0);
+    background: rgba(255, 60, 0, 0.18);
+    border-color: var(--accent);
+  }
+  82% {
+    transform: scaleY(1.05) translate3d(0, 30px, 0);
+    background: rgba(0, 246, 237, 0.3);
+    border-color: var(--cyan);
+    box-shadow: 0 0 12px var(--cyan);
+  }
+}
+
+@keyframes deadlift-arms-front-pull {
+  0%, 100% {
+    transform: scaleY(0.78) translate3d(0, 0, 0);
+  }
+  42%, 55% {
+    transform: scaleY(0.78) translate3d(0, 0, 0);
+  }
+  82% {
+    transform: scaleY(1) translate3d(0, 30px, 0);
+  }
+}
+
+@keyframes deadlift-torso-side-hinge {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(45deg);
+    background: rgba(255, 60, 0, 0.18);
+    border-color: var(--accent);
+  }
+  42%, 55% {
+    transform: translate3d(0, 0, 0) rotate(45deg);
+    background: rgba(255, 60, 0, 0.18);
+    border-color: var(--accent);
+  }
+  82% {
+    transform: translate3d(15px, 18px, 0) rotate(-70deg);
+    background: rgba(0, 246, 237, 0.3);
+    border-color: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+  }
+}
+
+@keyframes deadlift-hips-motion-side {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  42%, 55% {
+    transform: translate3d(0, 0, 0);
+  }
+  82% {
+    transform: translate3d(0, 20px, 0);
+  }
+}
+
+@keyframes deadlift-thigh-side-drive {
+  0%, 100% {
+    transform: rotate(115deg) translate3d(0, 0, 0);
+  }
+  42%, 55% {
+    transform: rotate(115deg) translate3d(0, 0, 0);
+  }
+  82% {
+    transform: rotate(45deg) translate3d(0, 17px, 0);
+  }
+}
+
+@keyframes deadlift-arm-side-hang {
+  0%, 100% {
+    transform: rotate(18deg) translate3d(0, 0, 0);
+  }
+  42%, 55% {
+    transform: rotate(18deg) translate3d(0, 0, 0);
+  }
+  82% {
+    transform: rotate(0deg) translate3d(-2px, 30px, 0);
+  }
 }
