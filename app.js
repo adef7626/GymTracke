@@ -105,7 +105,7 @@ const MUSCLES = [
 ];
 
 const STANDARD_WEIGHTS = [2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90, 100];
-const STANDARD_REPS = [5, 10, 15, 19, 20, 25, 30];
+const STANDARD_REPS = [5, 10, 12, 15, 19, 20, 25, 30];
 
 const DEFAULT_EXERCISES = {
   "Chest": [
@@ -299,7 +299,8 @@ let state = {
   synthPlaying: false,
   unit: "kg",
   isEditing: false,
-  originalEditingExercise: null
+  originalEditingExercise: null,
+  overviewCharts: []
 };
 
 // Haptic & Visual Feedback Helpers
@@ -379,8 +380,8 @@ function formatDate(dateStr) {
 
 function defaultSetsByType(type) {
   if (type === "cardio") return [{ distance: 2.0, time: 15 }];
-  if (type === "bodyweight") return [{ reps: 10 }, { reps: 8 }, { reps: 8 }];
-  return [{ weight: 10, reps: 10 }, { weight: 10, reps: 8 }, { weight: 12.5, reps: 8 }];
+  if (type === "bodyweight") return [{ reps: 15 }, { reps: 12 }, { reps: 10 }];
+  return [{ weight: 10, reps: 15 }, { weight: 12.5, reps: 12 }, { weight: 15, reps: 10 }];
 }
 
 function dedupeExerciseObjects(list) {
@@ -670,6 +671,14 @@ function initRecapView() {
 
   container.innerHTML = "";
 
+  // Destroy existing overview charts to prevent memory leaks
+  if (state.overviewCharts && state.overviewCharts.length > 0) {
+    state.overviewCharts.forEach(c => {
+      if (c) c.destroy();
+    });
+  }
+  state.overviewCharts = [];
+
   // Find all exercises logged for this muscle
   const allLogs = state.entries.filter(e => e.muscle === state.selectedMuscle && e.exercise !== "__muscle_complete__");
   const uniqueLoggedNames = Array.from(new Set(allLogs.map(l => l.exercise)));
@@ -680,7 +689,7 @@ function initRecapView() {
         ⚔️ No workouts logged on this battlefield yet. Let's start attacking!
       </div>`;
   } else {
-    // Show cards for each logged exercise showing short recap
+    // Show cards for each logged exercise showing short recap and line charts
     uniqueLoggedNames.forEach(name => {
       const logs = allLogs.filter(l => normalizeName(l.exercise) === normalizeName(name));
       const latest = logs[logs.length - 1];
@@ -712,34 +721,131 @@ function initRecapView() {
 
       const meta = document.createElement("div");
       meta.className = "overview-meta";
-      meta.textContent = `Sessions: ${logs.length} • Last: ${formatDate(latest.date)} (${latest.type})`;
+      meta.textContent = `Sessions: ${logs.length} • Last: ${formatDate(latest.date)}`;
 
-      const setsDesc = document.createElement("div");
-      setsDesc.className = "overview-sets";
+      // Create overload chart container
+      const chartWrapper = document.createElement("div");
+      chartWrapper.className = "overview-chart-wrapper";
+      chartWrapper.style.height = "105px";
+      chartWrapper.style.marginTop = "8px";
+      chartWrapper.style.position = "relative";
 
-      if (latest.type === "cardio") {
-        const totalDist = latest.sets.reduce((sum, s) => sum + (s.distance || 0), 0);
-        const totalTime = latest.sets.reduce((sum, s) => sum + (s.time || 0), 0);
-        setsDesc.textContent = `Completed ${latest.sets.length} set(s) • Total Distance: ${totalDist} km • Time: ${totalTime} mins`;
-      } else if (latest.type === "bodyweight") {
-        const totalReps = latest.sets.reduce((sum, s) => sum + (s.reps || 0), 0);
-        const repsString = latest.sets.map(s => s.reps).join("-");
-        setsDesc.textContent = `Completed ${latest.sets.length} set(s) • Reps: [${repsString}] • Total: ${totalReps} reps`;
-      } else {
-        const vol = latest.totalVolume;
-        const setStrings = latest.sets.map(s => `${s.weight}kgx${s.reps}`).join(", ");
-        setsDesc.textContent = `Sets: [${setStrings}] • Volume: ${vol} kg`;
-      }
+      const canvas = document.createElement("canvas");
+      canvas.className = "overview-chart-canvas";
+      canvas.style.width = "100%";
+      canvas.style.height = "100%";
+      canvas.addEventListener("click", (e) => {
+        e.stopPropagation(); // prevent navigation on chart taps to allow tooltips
+      });
+      chartWrapper.appendChild(canvas);
 
       item.appendChild(header);
       item.appendChild(meta);
-      item.appendChild(setsDesc);
+      item.appendChild(chartWrapper);
 
       container.appendChild(item);
+
+      // Initialize the overload chart on next tick
+      setTimeout(() => {
+        buildOverviewExerciseChart(canvas, logs, latest.type);
+      }, 0);
     });
   }
 
   switchView("view-overview");
+}
+
+function buildOverviewExerciseChart(canvas, logs, type) {
+  const ctx = canvas.getContext("2d");
+
+  // Keep latest 5 sessions to keep overview graphs clear
+  const subset = logs.slice(-5);
+
+  const labels = subset.map(l => {
+    const d = new Date(l.date);
+    return `${d.getMonth() + 1}/${d.getDate()}`;
+  });
+
+  const dataset1 = [];
+  subset.forEach(log => {
+    if (type === "cardio") {
+      const totalDist = log.sets.reduce((sum, s) => sum + (s.distance || 0), 0);
+      dataset1.push(totalDist);
+    } else if (type === "bodyweight") {
+      const maxReps = Math.max(...log.sets.map(s => s.reps || 0));
+      dataset1.push(maxReps);
+    } else {
+      // Weighted: Top Weight from session
+      const maxWeight = Math.max(...log.sets.map(s => s.weight || 0));
+      dataset1.push(maxWeight);
+    }
+  });
+
+  // Colors based on cyberpunk neon theme
+  const borderCol = type === "cardio" ? "#ff8c1a" : (type === "bodyweight" ? "#a78bfa" : "#00e5ff");
+  const gradient = ctx.createLinearGradient(0, 0, 0, 80);
+  if (type === "cardio") {
+    gradient.addColorStop(0, "rgba(255, 140, 26, 0.3)");
+    gradient.addColorStop(1, "rgba(255, 140, 26, 0.0)");
+  } else if (type === "bodyweight") {
+    gradient.addColorStop(0, "rgba(167, 139, 250, 0.3)");
+    gradient.addColorStop(1, "rgba(167, 139, 250, 0.0)");
+  } else {
+    gradient.addColorStop(0, "rgba(0, 229, 255, 0.3)");
+    gradient.addColorStop(1, "rgba(0, 229, 255, 0.0)");
+  }
+
+  const labelName = type === "cardio" ? "Distance (km)" : (type === "bodyweight" ? "Max Reps" : "Top Weight");
+
+  const chart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [{
+        label: labelName,
+        data: dataset1,
+        borderColor: borderCol,
+        backgroundColor: gradient,
+        borderWidth: 2,
+        fill: true,
+        tension: 0.3,
+        pointBackgroundColor: borderCol,
+        pointBorderColor: "#ffffff",
+        pointRadius: 3,
+        pointHoverRadius: 5
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "rgba(10, 12, 34, 0.95)",
+          titleColor: "#ffffff",
+          bodyColor: "#f5f6fa",
+          borderColor: "rgba(255, 255, 255, 0.1)",
+          borderWidth: 1,
+          padding: 6,
+          cornerRadius: 6,
+          bodyFont: { family: "Inter", size: 10 }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: "#8d94c0", font: { size: 8 } }
+        },
+        y: {
+          grid: { color: "rgba(255, 255, 255, 0.03)" },
+          ticks: { color: "#8d94c0", font: { size: 8 } }
+        }
+      }
+    }
+  });
+
+  if (!state.overviewCharts) state.overviewCharts = [];
+  state.overviewCharts.push(chart);
 }
 
 function initWorkoutLoggingView(preselectedExerciseName = null) {
@@ -844,7 +950,12 @@ function updateLoggingInterface(type) {
     if (type === "cardio") {
       hint.textContent = "⚡ Cardio session. Track distance (km) and time (minutes).";
     } else if (type === "bodyweight") {
-      hint.textContent = "🤸 Bodyweight session. Track number of reps per set.";
+      const isTimedHint = ["plank", "wall sit", "hollow hold", "dead hang"].some(n =>
+        (state.selectedExercise || '').toLowerCase().includes(n)
+      );
+      hint.textContent = isTimedHint
+        ? "⏱️ Timed hold exercise. Track time (seconds) per set."
+        : "🤸 Bodyweight session. Track number of reps per set.";
     } else {
       hint.textContent = "🏋️ Weighted session. Track weights (kg) and reps per set.";
     }
@@ -874,62 +985,93 @@ function buildSuggestedSets(type) {
     normalizeName(e.exercise) === normalizeName(state.selectedExercise)
   );
 
-  let sourceSets = [];
-  let isFromHistory = false;
-
-  if (logs.length > 0) {
-    const lastLog = logs[logs.length - 1];
-    // Dynamic set type conversion: Convert sets if historical type differs from requested type
-    sourceSets = (lastLog.sets || []).map(s => {
-      const converted = { ...s };
-      if (type === "cardio") {
-        converted.distance = Number(s.distance !== undefined ? s.distance : (s.km !== undefined ? s.km : 1.0)) || 1.0;
-        converted.time = Number(s.time !== undefined ? s.time : (s.reps || 10)) || 10;
-        delete converted.weight;
-        delete converted.reps;
-      } else if (type === "bodyweight") {
-        converted.reps = Number(s.reps !== undefined ? s.reps : (s.time || 10)) || 10;
-        delete converted.weight;
-        delete converted.distance;
-        delete converted.time;
-      } else { // weighted
-        converted.weight = Number(s.weight !== undefined ? s.weight : 10) || 10;
-        converted.reps = Number(s.reps !== undefined ? s.reps : (s.time || 10)) || 10;
-        delete converted.distance;
-        delete converted.time;
-      }
-      return converted;
-    });
-    isFromHistory = true;
-  } else {
-    // No history, build default empty sets
-    sourceSets = defaultSetsByType(type);
-  }
-
-  // 2. Adjust target values based on selected training Mode
-  const mode = state.mode;
   let setsToRender = [];
+  let isFromHistory = false;
+  const mode = state.mode; // moved here so all type branches can access it
 
-  sourceSets.forEach(set => {
-    let newSet = { ...set };
-    
-    if (type === "weighted") {
+  if (type === "weighted") {
+    let baseSets = [];
+    if (logs.length > 0) {
+      const lastLog = logs[logs.length - 1];
+
+      // Pull previous weights, filter zeros, sort ascending so the pyramid is always
+      // lightest → Set 1 (15 reps) and heaviest → Set 3 (10 reps)
+      const prevWeights = (lastLog.sets || [])
+        .map(s => Number(s.weight) || 0)
+        .filter(w => w > 0)
+        .sort((a, b) => a - b);
+
+      // Fallback: if fewer than 3 sets logged previously, derive sensible spacing
+      const w1 = prevWeights[0] || 10;
+      const w2 = prevWeights[1] || (w1 + 5);
+      const w3 = prevWeights[2] || (w2 + 5);
+
+      baseSets = [
+        { weight: w1, reps: 15 },
+        { weight: w2, reps: 12 },
+        { weight: w3, reps: 10 }
+      ];
+      isFromHistory = true;
+    } else {
+      baseSets = [
+        { weight: 10, reps: 15 },
+        { weight: 15, reps: 12 },
+        { weight: 20, reps: 10 }
+      ];
+    }
+
+    // Apply mode-based weight increment on top of each base weight:
+    // Push  → +2.5kg per set (progressive overload)
+    // Easy  → –10% per set (deload)
+    // Normal → use base weight as-is (maintain)
+    baseSets.forEach((set, index) => {
+      let newSet = { ...set };
       if (mode === "easy") {
         newSet.weight = Math.max(0, Math.round((set.weight * 0.9) * 10) / 10);
-        newSet.reps = Math.max(5, set.reps - 2);
       } else if (mode === "push") {
-        newSet.weight = set.weight + 2.5;
+        newSet.weight = Math.round((set.weight + 2.5) * 10) / 10;
       }
+      // Snap to nearest standard weight plate value
       newSet.weight = findNearestStandardValue(newSet.weight, STANDARD_WEIGHTS);
-      newSet.reps = findNearestStandardValue(newSet.reps, STANDARD_REPS);
-    } else if (type === "bodyweight") {
-      if (mode === "easy") {
-        newSet.reps = Math.max(5, Math.round(set.reps * 0.8));
-      } else if (mode === "push") {
-        newSet.reps = set.reps + 2;
+      newSet.reps = index === 0 ? 15 : (index === 1 ? 12 : 10);
+      setsToRender.push(newSet);
+    });
+  } else if (type === "bodyweight") {
+    if (logs.length > 0) {
+      const lastLog = logs[logs.length - 1];
+      const prevSets = lastLog.sets || [];
+      const defaultReps = [12, 10, 8];
+      const numSets = Math.max(prevSets.length, 3);
+      for (let i = 0; i < numSets; i++) {
+        const prevReps = prevSets[i]?.reps || defaultReps[i] || 8;
+        let suggestedReps = prevReps;
+        // Push → +1 rep per set | Easy → -1 rep per set | Normal → same reps
+        if (mode === "push") suggestedReps = prevReps + 1;
+        else if (mode === "easy") suggestedReps = Math.max(1, prevReps - 1);
+        setsToRender.push({ reps: suggestedReps });
       }
-      newSet.reps = findNearestStandardValue(newSet.reps, STANDARD_REPS);
-    } else if (type === "cardio") {
+      isFromHistory = true;
+    } else {
+      setsToRender = [
+        { reps: 12 },
+        { reps: 10 },
+        { reps: 8 }
+      ];
+    }
+  } else if (type === "cardio") {
+    let sourceSets = [];
+    if (logs.length > 0) {
+      const lastLog = logs[logs.length - 1];
+      sourceSets = (lastLog.sets || []).map(s => ({
+        distance: Number(s.distance !== undefined ? s.distance : (s.km !== undefined ? s.km : 1.0)) || 1.0,
+        time: Number(s.time !== undefined ? s.time : (s.reps || 10)) || 10
+      }));
+      isFromHistory = true;
+    } else {
+      sourceSets = defaultSetsByType(type);
+    }
+    sourceSets.forEach(set => {
+      let newSet = { ...set };
       if (mode === "easy") {
         newSet.distance = Math.max(0.1, Math.round((set.distance * 0.8) * 100) / 100);
         newSet.time = Math.max(1, Math.round(set.time * 0.8));
@@ -937,15 +1079,18 @@ function buildSuggestedSets(type) {
         newSet.distance = Math.round((set.distance * 1.1) * 100) / 100;
         newSet.time = Math.round(set.time * 1.1);
       }
-    }
-    setsToRender.push(newSet);
-  });
-
-
+      setsToRender.push(newSet);
+    });
+  }
 
   // 3. Render Set Input Elements
+  // Check if this is a plank-style timed bodyweight exercise
+  const isTimedExercise = ["plank", "wall sit", "hollow hold", "dead hang"].some(n =>
+    (state.selectedExercise || '').toLowerCase().includes(n)
+  );
+
   setsToRender.forEach((set, index) => {
-    appendSetRow(type, set, index + 1);
+    appendSetRow(type, set, index + 1, isTimedExercise);
   });
 
   // 4. Update helpers description
@@ -965,7 +1110,7 @@ function buildSuggestedSets(type) {
   }
 }
 
-function appendSetRow(type, values = {}, setNum) {
+function appendSetRow(type, values = {}, setNum, isTimedExercise = false) {
   const container = document.getElementById("setsList");
   if (!container) return;
 
@@ -1087,14 +1232,32 @@ function appendSetRow(type, values = {}, setNum) {
     timeDiv.appendChild(timeInput);
     row.appendChild(timeDiv);
   } else if (type === "bodyweight") {
-    // Reps Dropdown
-    const repsDiv = document.createElement("div");
-    const repsLabel = document.createElement("label");
-    repsLabel.textContent = "Reps";
-    const repsSelect = createStandardSelect("set-reps", STANDARD_REPS, values.reps, "reps");
-    repsDiv.appendChild(repsLabel);
-    repsDiv.appendChild(repsSelect);
-    row.appendChild(repsDiv);
+    if (isTimedExercise) {
+      // Time (seconds) input for plank-style exercises
+      const timeDiv = document.createElement("div");
+      const timeLabel = document.createElement("label");
+      timeLabel.textContent = "Time (sec)";
+      const timeInput = document.createElement("input");
+      timeInput.type = "number";
+      timeInput.className = "set-time-sec";
+      timeInput.dataset.field = "time";
+      timeInput.step = "5";
+      timeInput.min = "1";
+      timeInput.value = values.time !== undefined ? values.time : (values.reps || 30);
+      timeInput.placeholder = "30";
+      timeDiv.appendChild(timeLabel);
+      timeDiv.appendChild(timeInput);
+      row.appendChild(timeDiv);
+    } else {
+      // Reps Dropdown
+      const repsDiv = document.createElement("div");
+      const repsLabel = document.createElement("label");
+      repsLabel.textContent = "Reps";
+      const repsSelect = createStandardSelect("set-reps", STANDARD_REPS, values.reps, "reps");
+      repsDiv.appendChild(repsLabel);
+      repsDiv.appendChild(repsSelect);
+      row.appendChild(repsDiv);
+    }
   } else {
     // Weighted — Weight Dropdown
     const wDiv = document.createElement("div");
@@ -1148,6 +1311,10 @@ function addSet() {
   const type = typeSelect.value;
   const currentRows = document.querySelectorAll("#setsList .set-row");
   
+  const isTimedEx = ['plank', 'wall sit', 'hollow hold', 'dead hang'].some(n =>
+    (state.selectedExercise || '').toLowerCase().includes(n)
+  );
+
   let defaultValues = {};
   if (currentRows.length > 0) {
     // Clone value from last row as standard starting target
@@ -1156,7 +1323,11 @@ function addSet() {
       defaultValues.distance = Number(lastRow.querySelector(".set-distance")?.value) || 0;
       defaultValues.time = Number(lastRow.querySelector(".set-time")?.value) || 0;
     } else if (type === "bodyweight") {
-      defaultValues.reps = Number(lastRow.querySelector(".set-reps")?.value) || 0;
+      if (isTimedEx) {
+        defaultValues.time = Number(lastRow.querySelector(".set-time-sec")?.value) || 30;
+      } else {
+        defaultValues.reps = Number(lastRow.querySelector(".set-reps")?.value) || 0;
+      }
     } else {
       defaultValues.weight = Number(lastRow.querySelector(".set-weight")?.value) || 0;
       defaultValues.reps = Number(lastRow.querySelector(".set-reps")?.value) || 0;
@@ -1167,7 +1338,7 @@ function addSet() {
   }
 
   triggerHaptic(10);
-  appendSetRow(type, defaultValues, currentRows.length + 1);
+  appendSetRow(type, defaultValues, currentRows.length + 1, isTimedEx);
 }
 
 function refreshExerciseStats() {
@@ -1453,8 +1624,8 @@ function buildProgressChart(logs, type) {
 
   const ctx = canvas.getContext("2d");
 
-  // Keep latest 8 sessions to avoid crowded visual graphs on mobile
-  const subset = logs.slice(-8);
+  // Keep latest 5 sessions to avoid crowded visual graphs on mobile
+  const subset = logs.slice(-5);
 
   const labels = subset.map(l => {
     const d = new Date(l.date);
@@ -3559,19 +3730,35 @@ function getStreakCount() {
   if (activeDates.length > 0) {
     const todayStr = new Date().toISOString().split("T")[0];
     const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split("T")[0];
-    
-    // Streak continues only if there was a workout logged today or yesterday
-    if (activeDates[0] === todayStr || activeDates[0] === yesterdayStr) {
+    const today = new Date(todayStr + 'T00:00:00');
+    const isMonday = today.getDay() === 1;
+    const twoDaysAgoStr = new Date(today.getTime() - 2 * 86400000).toISOString().split('T')[0];
+
+    // Streak continues only if there was a workout logged today, yesterday,
+    // or on Saturday when today is Monday (Sunday rest day in between)
+    const startOk = activeDates[0] === todayStr ||
+                    activeDates[0] === yesterdayStr ||
+                    (isMonday && activeDates[0] === twoDaysAgoStr);
+    if (startOk) {
       currentStreak = 1;
       for (let i = 0; i < activeDates.length - 1; i++) {
-        const d1 = new Date(activeDates[i]);
-        const d2 = new Date(activeDates[i+1]);
-        const diffTime = Math.abs(d1 - d2);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        if (diffDays === 1) {
+        const d1 = new Date(activeDates[i] + 'T00:00:00');
+        const d2 = new Date(activeDates[i+1] + 'T00:00:00');
+        const diffTime = d1 - d2;
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+        // Count how many Sundays fall between d2 and d1 (exclusive of d1)
+        let sundaysInGap = 0;
+        for (let s = 1; s < diffDays; s++) {
+          const mid = new Date(d2.getTime() + s * 86400000);
+          if (mid.getDay() === 0) sundaysInGap++; // 0 = Sunday
+        }
+
+        const effectiveDiff = diffDays - sundaysInGap;
+        if (effectiveDiff === 1) {
           currentStreak++;
-        } else if (diffDays > 1) {
-          break; // Streak sequence broken
+        } else if (effectiveDiff > 1) {
+          break; // Streak sequence broken (even after skipping Sundays)
         }
       }
     }
@@ -3791,6 +3978,7 @@ function triggerSetCompleteBeep() {
 }
 
 // 3. Spawns Flying CSS Spark particles
+// 3. Spawns Flying CSS Spark particles
 function triggerExplosionAnimation(x, y) {
   const particleCount = 12;
   const container = document.body;
@@ -3806,13 +3994,44 @@ function triggerExplosionAnimation(x, y) {
     
     spark.style.left = `${x}px`;
     spark.style.top = `${y}px`;
-    spark.style.setProperty("--dx", `${dx}px`);
-    spark.style.setProperty("--dy", `${dy}px`);
+    
+    // Inject dynamic keyframe stylesheet for WebKit compatibility
+    const animId = `explode-anim-${Math.random().toString(36).substr(2, 9)}`;
+    const keyframes = `
+      @keyframes ${animId} {
+        0% {
+          transform: translate3d(0, 0, 0) scale(1);
+          opacity: 1;
+        }
+        100% {
+          transform: translate3d(${dx}px, ${dy}px, 0) scale(0.2);
+          opacity: 0;
+        }
+      }
+      @-webkit-keyframes ${animId} {
+        0% {
+          -webkit-transform: translate3d(0, 0, 0) scale(1);
+          opacity: 1;
+        }
+        100% {
+          -webkit-transform: translate3d(${dx}px, ${dy}px, 0) scale(0.2);
+          opacity: 0;
+        }
+      }
+    `;
+    
+    const styleSheet = document.createElement("style");
+    styleSheet.innerText = keyframes;
+    document.head.appendChild(styleSheet);
+    
+    spark.style.animation = `${animId} 0.5s cubic-bezier(0.1, 0.8, 0.25, 1) forwards`;
+    spark.style.webkitAnimation = `${animId} 0.5s cubic-bezier(0.1, 0.8, 0.25, 1) forwards`;
     
     container.appendChild(spark);
     
     setTimeout(() => {
       spark.remove();
+      styleSheet.remove();
     }, 500);
   }
 }
@@ -3905,6 +4124,53 @@ function triggerSparklingAnimation(x, y) {
             opacity: 0;
           }
         }
+        @-webkit-keyframes ${animId} {
+          0% {
+            -webkit-transform: translate3d(0, 0, 0) rotate(${radStart}rad) scaleY(0.1);
+            box-shadow: 0 0 4px ${color}, 0 0 1px #ffffff;
+            background: linear-gradient(to top, rgba(255, 50, 0, 0) 0%, rgba(255, 100, 0, 0.4) 20%, ${color} 60%, #ffffff 100%);
+            opacity: 1;
+          }
+          20% {
+            -webkit-transform: translate3d(${dx * 0.28}px, ${dy * 0.28 + g * 0.0625}px, 0) rotate(${radStart * 0.8 + radEnd * 0.2}rad) scaleY(${scaleY});
+            box-shadow: 0 0 5px ${color}, 0 0 1.5px #ffffff;
+            background: linear-gradient(to top, rgba(255, 50, 0, 0) 0%, rgba(255, 100, 0, 0.4) 20%, ${color} 60%, #ffffff 100%);
+          }
+          70% {
+            -webkit-transform: translate3d(${dx * 0.53}px, ${dy * 0.53 + g * 0.25}px, 0) rotate(${radStart * 0.35 + radEnd * 0.65}rad) scaleY(${scaleY});
+            box-shadow: 0 0 5px ${color}, 0 0 1.5px #ffffff;
+            background: linear-gradient(to top, rgba(255, 50, 0, 0) 0%, rgba(255, 100, 0, 0.4) 20%, ${color} 60%, #ffffff 100%);
+            opacity: 0.95;
+          }
+          75% {
+            -webkit-transform: translate3d(${dx * 0.78}px, ${dy * 0.78 + g * 0.5625}px, 0) rotate(${radStart * 0.15 + radEnd * 0.85}rad) scaleY(0.25);
+            box-shadow: 0 0 6px ${color}, 0 0 2px #ffffff;
+            background: #ffffff;
+            opacity: 1;
+          }
+          80% {
+            -webkit-transform: translate3d(${dx * 0.95}px, ${dy + g}px, 0) rotate(${radEnd}rad) scaleY(0.15);
+            background: #ffffff;
+            box-shadow: 
+              0 0 5px ${color},
+              -4px -4px 3px ${color},
+              4px -4px 3px ${color},
+              -4px 4px 3px ${color},
+              4px 4px 3px ${color};
+            opacity: 1;
+          }
+          100% {
+            -webkit-transform: translate3d(${dx * 0.95 + drift}px, ${dy + g}px, 0) rotate(${radEnd}rad) scaleY(0.01);
+            background: transparent;
+            box-shadow: 
+              0 0 2px ${color},
+              -12px -12px 6px transparent,
+              12px -12px 6px transparent,
+              -12px 12px 6px transparent,
+              12px 12px 6px transparent;
+            opacity: 0;
+          }
+        }
       `;
       
       const styleSheet = document.createElement("style");
@@ -3912,6 +4178,7 @@ function triggerSparklingAnimation(x, y) {
       document.head.appendChild(styleSheet);
       
       core.style.animation = `${animId} 0.65s cubic-bezier(0.05, 0.6, 0.2, 1) forwards`;
+      core.style.webkitAnimation = `${animId} 0.65s cubic-bezier(0.05, 0.6, 0.2, 1) forwards`;
       
       wrap.appendChild(core);
       container.appendChild(wrap);

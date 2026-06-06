@@ -3004,10 +3004,218 @@ select.mode-select option {
   0%, 100% {
     transform: rotate(18deg) translate3d(0, 0, 0);
   }
-  42%, 55% {
-    transform: rotate(18deg) translate3d(0, 0, 0);
-  }
   82% {
     transform: rotate(0deg) translate3d(-2px, 30px, 0);
   }
+}
+
+/* ================================================
+   Step 2 Overview Chart Styles
+   ================================================ */
+.overview-chart-wrapper {
+  background: rgba(4, 5, 15, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+  padding: 6px;
+  box-sizing: border-box;
+}
+
+.overview-chart-canvas {
+  display: block;
+}
+
+/* -webkit- prefixes overrides for biomechanical animation selectors */
+.front-view .bench-press-torso { -webkit-animation: chest-contract 3s infinite ease-in-out; }
+.front-view .bench-press-barbell { -webkit-animation: bench-press-motion 3s infinite ease-in-out; }
+.side-view-panel .side-lifter-torso { -webkit-animation: side-chest-contract 3s infinite ease-in-out; }
+.side-view-panel .side-barbell { -webkit-animation: side-barbell-motion 3s infinite ease-in-out; }
+
+.front-view .incline-torso-front { -webkit-animation: incline-chest-contract 3s infinite ease-in-out; }
+.front-view .incline-barbell-front { -webkit-animation: incline-bench-press-motion 3s infinite ease-in-out; }
+.side-view-panel .incline-lifter-torso { -webkit-animation: incline-side-chest-contract 3s infinite ease-in-out; }
+.side-view-panel .incline-barbell-side { -webkit-animation: incline-side-barbell-motion 3s infinite ease-in-out; }
+
+.front-view .squat-torso-front { -webkit-animation: squat-torso-front-scale 3s infinite ease-in-out; }
+.front-view .squat-thighs-front { -webkit-animation: squat-thighs-front-bend 3s infinite ease-in-out; }
+.front-view .squat-barbell-front { -webkit-animation: squat-barbell-motion-front 3s infinite ease-in-out; }
+.side-view-panel .squat-head-side { -webkit-animation: squat-head-motion-side 3s infinite ease-in-out; }
+.side-view-panel .squat-torso-side { -webkit-animation: squat-torso-side-lean 3s infinite ease-in-out; }
+.side-view-panel .squat-thigh-side { -webkit-animation: squat-thigh-side-hinge 3s infinite ease-in-out; }
+.side-view-panel .squat-calf-side { -webkit-animation: squat-calf-side-angle 3s infinite ease-in-out; }
+.side-view-panel .squat-barbell-side { -webkit-animation: squat-barbell-motion-side 3s infinite ease-in-out; }
+
+.front-view .deadlift-torso-front { -webkit-animation: deadlift-torso-front-scale 3s infinite ease-in-out; }
+.front-view .deadlift-arms-front { -webkit-animation: deadlift-arms-front-pull 3s infinite ease-in-out; }
+.front-view .deadlift-barbell-front { -webkit-animation: deadlift-barbell-motion-front 3s infinite ease-in-out; }
+.side-view-panel .deadlift-hips-side { -webkit-animation: deadlift-hips-motion-side 3s infinite ease-in-out; }
+.side-view-panel .deadlift-torso-side { -webkit-animation: deadlift-torso-side-hinge 3s infinite ease-in-out; }
+.side-view-panel .deadlift-thigh-side { -webkit-animation: deadlift-thigh-side-drive 3s infinite ease-in-out; }
+.side-view-panel .deadlift-arm-side { -webkit-animation: deadlift-arm-side-hang 3s infinite ease-in-out; }
+.side-view-panel .deadlift-barbell-side { -webkit-animation: deadlift-barbell-motion-side 3s infinite ease-in-out; }
+
+.dynamics-phase { -webkit-animation: phase-label-pulse 3s infinite steps(1); }
+.dynamics-phase::before { -webkit-animation: phase-text-anim 3s infinite steps(1); }
+
+.settings-gear-btn.sparkle-active {
+  -webkit-animation: gear-sparkle-spin 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
+}
+
+/* Duplicated keyframes with -webkit- prefix to resolve WKWebView dynamic renderer limitations */
+@-webkit-keyframes gear-sparkle-spin {
+  0% { -webkit-transform: rotate(0deg) scale(1); box-shadow: 0 0 0px var(--accent); }
+  50% { -webkit-transform: rotate(180deg) scale(1.3); box-shadow: 0 0 25px var(--accent); background: rgba(255, 140, 26, 0.2); }
+  100% { -webkit-transform: rotate(360deg) scale(1); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+}
+
+@-webkit-keyframes bench-press-motion {
+  0%, 100% { -webkit-transform: translate3d(0, -27px, 0); }
+  42% { -webkit-transform: translate3d(0, 0, 0); }
+  55% { -webkit-transform: translate3d(0, 0, 0); }
+  82% { -webkit-transform: translate3d(0, -27px, 0); }
+}
+
+@-webkit-keyframes side-barbell-motion {
+  0%, 100% { -webkit-transform: translate3d(0, -27px, 0); }
+  42% { -webkit-transform: translate3d(14px, 0, 0); }
+  55% { -webkit-transform: translate3d(14px, 0, 0); }
+  82% { -webkit-transform: translate3d(0, -27px, 0); }
+}
+
+@-webkit-keyframes chest-contract {
+  0%, 100% { -webkit-transform: scaleY(1); }
+  42%, 55% { -webkit-transform: scaleY(0.85); }
+  82% { -webkit-transform: scaleY(1.08); }
+}
+
+@-webkit-keyframes side-chest-contract {
+  0%, 100% { -webkit-transform: scaleY(1); }
+  42%, 55% { -webkit-transform: scaleY(0.8125); }
+  82% { -webkit-transform: scaleY(1.0625); }
+}
+
+@-webkit-keyframes incline-bench-press-motion {
+  0%, 100% { -webkit-transform: translate3d(0, -20px, 0); }
+  42% { -webkit-transform: translate3d(0, 0, 0); }
+  55% { -webkit-transform: translate3d(0, 0, 0); }
+  82% { -webkit-transform: translate3d(0, -20px, 0); }
+}
+
+@-webkit-keyframes incline-side-barbell-motion {
+  0%, 100% { -webkit-transform: translate3d(0, -16px, 0); }
+  42% { -webkit-transform: translate3d(14px, 0, 0); }
+  55% { -webkit-transform: translate3d(14px, 0, 0); }
+  82% { -webkit-transform: translate3d(0, -16px, 0); }
+}
+
+@-webkit-keyframes incline-chest-contract {
+  0%, 100% { -webkit-transform: scaleY(1); }
+  42%, 55% { -webkit-transform: scaleY(0.8); }
+  82% { -webkit-transform: scaleY(1.05); }
+}
+
+@-webkit-keyframes incline-side-chest-contract {
+  0%, 100% { -webkit-transform: scaleY(1); }
+  42%, 55% { -webkit-transform: scaleY(0.75); }
+  82% { -webkit-transform: scaleY(1.06); }
+}
+
+@-webkit-keyframes squat-barbell-motion-front {
+  0%, 100% { -webkit-transform: translate3d(0, -35px, 0); }
+  42% { -webkit-transform: translate3d(0, 0, 0); }
+  55% { -webkit-transform: translate3d(0, 0, 0); }
+  82% { -webkit-transform: translate3d(0, -35px, 0); }
+}
+
+@-webkit-keyframes squat-barbell-motion-side {
+  0%, 100% { -webkit-transform: translate3d(0, -35px, 0); }
+  42% { -webkit-transform: translate3d(0, 0, 0); }
+  55% { -webkit-transform: translate3d(0, 0, 0); }
+  82% { -webkit-transform: translate3d(0, -35px, 0); }
+}
+
+@-webkit-keyframes squat-torso-front-scale {
+  0%, 100% { -webkit-transform: translate3d(0, -15px, 0) scaleY(1); }
+  42%, 55% { -webkit-transform: translate3d(0, 0, 0) scaleY(0.7); }
+  82% { -webkit-transform: translate3d(0, -15px, 0) scaleY(1.05); }
+}
+
+@-webkit-keyframes squat-thighs-front-bend {
+  0%, 100% { -webkit-transform: scaleY(2.167); }
+  42%, 55% { -webkit-transform: scaleY(1); }
+  82% { -webkit-transform: scaleY(2.167); }
+}
+
+@-webkit-keyframes squat-head-motion-side {
+  0%, 100% { -webkit-transform: translate3d(8px, -36px, 0); }
+  42% { -webkit-transform: translate3d(0, -3px, 0); }
+  55% { -webkit-transform: translate3d(0, -3px, 0); }
+  82% { -webkit-transform: translate3d(8px, -36px, 0); }
+}
+
+@-webkit-keyframes squat-torso-side-lean {
+  0%, 100% { -webkit-transform: translate3d(13px, -20px, 0) rotate(0deg); }
+  42%, 55% { -webkit-transform: translate3d(3px, -4px, 0) rotate(35deg); }
+  82% { -webkit-transform: translate3d(13px, -20px, 0) rotate(0deg); }
+}
+
+@-webkit-keyframes squat-thigh-side-hinge {
+  0%, 100% { -webkit-transform: rotate(50deg) translate3d(13px, -7px, 0); }
+  42%, 55% { -webkit-transform: rotate(-10deg) translate3d(3px, 0, 0); }
+  82% { -webkit-transform: rotate(50deg) translate3d(13px, -7px, 0); }
+}
+
+@-webkit-keyframes squat-calf-side-angle {
+  0%, 100% { -webkit-transform: rotate(0deg) translate3d(6px, 0, 0); }
+  42%, 55% { -webkit-transform: rotate(25deg) translate3d(0, 0, 0); }
+  82% { -webkit-transform: rotate(0deg) translate3d(6px, 0, 0); }
+}
+
+@-webkit-keyframes deadlift-barbell-motion-front {
+  0%, 100% { -webkit-transform: translate3d(0, 0, 0); }
+  42% { -webkit-transform: translate3d(0, 0, 0); }
+  55% { -webkit-transform: translate3d(0, 0, 0); }
+  82% { -webkit-transform: translate3d(0, 30px, 0); }
+}
+
+@-webkit-keyframes deadlift-barbell-motion-side {
+  0%, 100% { -webkit-transform: translate3d(0, 0, 0); }
+  42% { -webkit-transform: translate3d(0, 0, 0); }
+  55% { -webkit-transform: translate3d(0, 0, 0); }
+  82% { -webkit-transform: translate3d(6px, 30px, 0); }
+}
+
+@-webkit-keyframes deadlift-torso-front-scale {
+  0%, 100% { -webkit-transform: scaleY(0.7) translate3d(0, 0, 0); }
+  42%, 55% { -webkit-transform: scaleY(0.7) translate3d(0, 0, 0); }
+  82% { -webkit-transform: scaleY(1.05) translate3d(0, 30px, 0); }
+}
+
+@-webkit-keyframes deadlift-arms-front-pull {
+  0%, 100% { -webkit-transform: scaleY(0.78) translate3d(0, 0, 0); }
+  42%, 55% { -webkit-transform: scaleY(0.78) translate3d(0, 0, 0); }
+  82% { -webkit-transform: scaleY(1) translate3d(0, 30px, 0); }
+}
+
+@-webkit-keyframes deadlift-torso-side-hinge {
+  0%, 100% { -webkit-transform: translate3d(0, 0, 0) rotate(45deg); }
+  42%, 55% { -webkit-transform: translate3d(0, 0, 0) rotate(45deg); }
+  82% { -webkit-transform: translate3d(15px, 18px, 0) rotate(-70deg); }
+}
+
+@-webkit-keyframes deadlift-hips-motion-side {
+  0%, 100% { -webkit-transform: translate3d(0, 0, 0); }
+  42%, 55% { -webkit-transform: translate3d(0, 0, 0); }
+  82% { -webkit-transform: translate3d(0, 20px, 0); }
+}
+
+@-webkit-keyframes deadlift-thigh-side-drive {
+  0%, 100% { -webkit-transform: rotate(115deg) translate3d(0, 0, 0); }
+  42%, 55% { -webkit-transform: rotate(115deg) translate3d(0, 0, 0); }
+  82% { -webkit-transform: rotate(45deg) translate3d(0, 17px, 0); }
+}
+
+@-webkit-keyframes deadlift-arm-side-hang {
+  0%, 100% { -webkit-transform: rotate(18deg) translate3d(0, 0, 0); }
+  42%, 55% { -webkit-transform: rotate(18deg) translate3d(0, 0, 0); }
+  82% { -webkit-transform: rotate(0deg) translate3d(-2px, 30px, 0); }
 }
