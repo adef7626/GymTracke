@@ -624,6 +624,7 @@ function switchView(viewId) {
   document.body.style.top = `-${scrollY}px`;
   document.body.style.overflowY = "hidden";
   document.documentElement.style.overflowY = "hidden"; // lock html scroll too
+  document.documentElement.classList.add("no-scrollbars"); // lock scrollbars globally
   if (scrollbarWidth > 0) {
     document.body.style.paddingRight = scrollbarWidth + "px";
   }
@@ -658,6 +659,7 @@ function switchView(viewId) {
     document.body.style.overflowY = "";
     document.body.style.paddingRight = "";
     document.documentElement.style.overflowY = ""; // restore html scroll
+    document.documentElement.classList.remove("no-scrollbars"); // restore scrollbars globally
     window.scrollTo(0, 0);
   }, 450);
 }

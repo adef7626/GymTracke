@@ -151,13 +151,22 @@ h1 {
 
 .view {
   display: none;
-  opacity: 0;
-  transform: translateY(20px) scale(0.985);
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 1;
+  transform: none;
+  will-change: transform, opacity;
+  background: var(--bg);
+  min-height: 100vh;
 }
 
 .view.active {
   display: block;
-  animation: viewSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  position: relative;
+  opacity: 1;
+  transform: none;
 }
 
 /* Glassmorphism Cards */
@@ -3213,19 +3222,7 @@ button, .btn, .chip, .stat, header, .card-title, .top-bar span, .muscle-tab {
   overflow-x: hidden;
 }
 
-.view {
-  display: none;
-  width: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
-  will-change: transform, opacity;
-}
-
-.view.active {
-  display: block;
-  position: relative; /* target view sizes container height dynamically */
-}
+/* View base definition unified at the top of the file */
 
 /* ============================================================
    Buttery-smooth bottom-sheet view transitions
@@ -3243,7 +3240,7 @@ button, .btn, .chip, .stat, header, .card-title, .top-bar span, .muscle-tab {
   border-radius: 20px 20px 0 0;
   box-shadow: 0 -16px 48px rgba(0, 0, 0, 0.65);
   overflow: hidden;
-  animation: iosPushEnter 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: iosPushEnter 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
 }
 
 /* PUSH EXIT: old view dims behind the rising sheet */
@@ -3252,14 +3249,15 @@ button, .btn, .chip, .stat, header, .card-title, .top-bar span, .muscle-tab {
   position: absolute !important;
   overflow: hidden !important;
   will-change: opacity;
-  animation: iosPushExit 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: iosPushExit 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
 }
 
 /* POP ENTER: previous view fades back in */
 .slide-pop-enter {
   display: block !important;
   will-change: opacity;
-  animation: iosPopEnter 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  overflow: hidden !important;
+  animation: iosPopEnter 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
 }
 
 /* POP EXIT: current view slides back down */
@@ -3272,7 +3270,7 @@ button, .btn, .chip, .stat, header, .card-title, .top-bar span, .muscle-tab {
   -webkit-backface-visibility: hidden;
   border-radius: 20px 20px 0 0;
   box-shadow: 0 -16px 48px rgba(0, 0, 0, 0.65);
-  animation: iosPopExit 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: iosPopExit 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
 }
 
 /* Keyframes — transform and opacity only (GPU-composited, no repaint) */
@@ -3580,4 +3578,17 @@ input[type="checkbox"]:checked + .ios-switch-label .ios-switch-inner {
   vertical-align: middle;
   color: var(--cyan);
 }
+
+/* Global scrollbar suppression class for active transitions */
+.no-scrollbars {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+.no-scrollbars::-webkit-scrollbar,
+.no-scrollbars *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 
