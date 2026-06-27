@@ -3227,49 +3227,70 @@ button, .btn, .chip, .stat, header, .card-title, .top-bar span, .muscle-tab {
   position: relative; /* target view sizes container height dynamically */
 }
 
-/* Forward transition (push): New view enters from right, old exits to left */
+/* ============================================================
+   Buttery-smooth bottom-sheet view transitions
+   — GPU composited: transform + opacity only (no filter/layout)
+   — Expo-out easing: fast start, buttery deceleration (iOS feel)
+   — will-change + backface-visibility force GPU layer promotion
+   ============================================================ */
+
+/* PUSH ENTER: new view slides up from bottom */
 .slide-push-enter {
   display: block !important;
-  animation: iosPushEnter 0.35s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -16px 48px rgba(0, 0, 0, 0.65);
+  overflow: hidden;
+  animation: iosPushEnter 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* PUSH EXIT: old view dims behind the rising sheet */
 .slide-push-exit {
   display: block !important;
   position: absolute !important;
-  animation: iosPushExit 0.35s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+  overflow: hidden !important;
+  will-change: opacity;
+  animation: iosPushExit 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Backward transition (pop): New view enters from left, old exits to right */
+/* POP ENTER: previous view fades back in */
 .slide-pop-enter {
   display: block !important;
-  animation: iosPopEnter 0.35s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+  will-change: opacity;
+  animation: iosPopEnter 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* POP EXIT: current view slides back down */
 .slide-pop-exit {
   display: block !important;
   position: absolute !important;
-  animation: iosPopExit 0.35s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+  overflow: hidden !important;
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -16px 48px rgba(0, 0, 0, 0.65);
+  animation: iosPopExit 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-
-/* Forward navigation — new view slides up from bottom,
-   old view simply dims and stays in place */
+/* Keyframes — transform and opacity only (GPU-composited, no repaint) */
 @keyframes iosPushEnter {
-  0%   { transform: translate3d(0, 100%, 0); opacity: 1; }
-  100% { transform: translate3d(0, 0, 0);   opacity: 1; }
+  0%   { transform: translateY(100%); opacity: 0.92; }
+  100% { transform: translateY(0);    opacity: 1; }
 }
 @keyframes iosPushExit {
   0%   { opacity: 1; }
-  100% { opacity: 0.3; }
+  100% { opacity: 0.4; }
 }
-
-/* Back navigation — current view slides back down,
-   previous view simply fades back in */
 @keyframes iosPopEnter {
-  0%   { opacity: 0.3; }
+  0%   { opacity: 0.4; }
   100% { opacity: 1; }
 }
 @keyframes iosPopExit {
-  0%   { transform: translate3d(0, 0, 0);    opacity: 1; }
-  100% { transform: translate3d(0, 100%, 0); opacity: 1; }
+  0%   { transform: translateY(0);    opacity: 1; }
+  100% { transform: translateY(100%); opacity: 0.92; }
 }
 
 

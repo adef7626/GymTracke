@@ -594,55 +594,74 @@ function switchView(viewId) {
   const currentViewId = navigationStack[navigationStack.length - 1];
   if (currentViewId === viewId) return;
 
-  let direction = "push"; // default to push (slide left)
+  let direction = "push";
 
-  // Reset navigation to main menu on completion/reset/cancel
   if (viewId === "view-muscles" && navigationStack.length > 1) {
     direction = "pop";
     navigationStack = ["view-muscles"];
   } else if (navigationStack.length > 1 && navigationStack[navigationStack.length - 2] === viewId) {
-    // Going back one step
     direction = "pop";
     navigationStack.pop();
   } else {
-    // Going forward
     direction = "push";
     navigationStack.push(viewId);
   }
 
   const currentView = document.getElementById(currentViewId);
   const targetView = document.getElementById(viewId);
+  if (!targetView) return;
 
-  if (targetView) {
-    // Remove all transition classes first
-    document.querySelectorAll(".view").forEach(v => {
-      v.classList.remove("active", "slide-push-enter", "slide-push-exit", "slide-pop-enter", "slide-pop-exit");
-      v.style.display = "none";
-    });
-
-    if (currentView && currentViewId !== viewId) {
-      currentView.style.display = "block";
-      currentView.classList.add(direction === "push" ? "slide-push-exit" : "slide-pop-exit");
-
-      // Hide the old view after slide animation finishes
-      setTimeout(() => {
-        currentView.style.display = "none";
-        currentView.classList.remove("slide-push-exit", "slide-pop-exit");
-      }, 350);
-    }
-
-    targetView.style.display = "block";
-    targetView.classList.add("active", direction === "push" ? "slide-push-enter" : "slide-pop-enter");
-
-    // Smooth scroll to top
-    window.scrollTo({ top: 0, behavior: "smooth" });
-
-    // Clean up animation classes from target view after transition finishes
-    setTimeout(() => {
-      targetView.classList.remove("slide-push-enter", "slide-pop-enter");
-    }, 350);
+  // Freeze scroll using the body-position-fix technique:
+  // Setting body { position: fixed; top: -scrollY } locks the scroll engine completely
+  // on all browsers including iOS Safari, while the page visually stays in place.
+  // (overflow:hidden alone is NOT reliable on iOS Safari)
+  const scrollY = window.scrollY || window.pageYOffset;
+  // Measure scrollbar width BEFORE fixing body — when body is fixed the scrollbar
+  // disappears, causing a ~17px layout shift. Compensate with padding-right.
+  const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+  document.body.style.position = "fixed";
+  document.body.style.width = "100%";
+  document.body.style.top = `-${scrollY}px`;
+  document.body.style.overflowY = "hidden";
+  document.documentElement.style.overflowY = "hidden"; // lock html scroll too
+  if (scrollbarWidth > 0) {
+    document.body.style.paddingRight = scrollbarWidth + "px";
   }
+
+  // Clear all views
+  document.querySelectorAll(".view").forEach(v => {
+    v.classList.remove("active", "slide-push-enter", "slide-push-exit", "slide-pop-enter", "slide-pop-exit");
+    v.style.display = "none";
+  });
+
+  // Animate exit view out
+  if (currentView && currentViewId !== viewId) {
+    currentView.style.display = "block";
+    currentView.classList.add(direction === "push" ? "slide-push-exit" : "slide-pop-exit");
+    setTimeout(() => {
+      currentView.style.display = "none";
+      currentView.classList.remove("slide-push-exit", "slide-pop-exit");
+    }, 450);
+  }
+
+  // Animate new view in
+  targetView.style.display = "block";
+  targetView.classList.add("active", direction === "push" ? "slide-push-enter" : "slide-pop-enter");
+
+  // After animation: unfreeze body — scroll is already at 0 since it was locked,
+  // so scrollTo(0,0) causes no visible jump.
+  setTimeout(() => {
+    targetView.classList.remove("slide-push-enter", "slide-pop-enter");
+    document.body.style.position = "";
+    document.body.style.width = "";
+    document.body.style.top = "";
+    document.body.style.overflowY = "";
+    document.body.style.paddingRight = "";
+    document.documentElement.style.overflowY = ""; // restore html scroll
+    window.scrollTo(0, 0);
+  }, 450);
 }
+
 
 // View Initializers and Rendering
 function renderMuscleTabs() {
@@ -3556,20 +3575,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // Settings Modal open/close binders
-  document.getElementById("btnOpenSettings")?.addEventListener("click", (e) => {
+  document.getElementById("btnOpenSettings")?.addEventListener("click", () => {
     triggerHaptic(10);
-    
-    const btn = e.currentTarget;
-    btn.classList.add("sparkle-active");
-    setTimeout(() => {
-      btn.classList.remove("sparkle-active");
-    }, 600);
-    
-    const rect = btn.getBoundingClientRect();
-    const x = rect.left + rect.width / 2 + window.scrollX;
-    const y = rect.top + rect.height / 2 + window.scrollY;
-    triggerSparklingAnimation(x, y);
-
     const settingsModal = document.getElementById("settingsModal");
     if (settingsModal) {
       settingsModal.style.display = "flex";
