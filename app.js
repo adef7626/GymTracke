@@ -586,15 +586,61 @@ function updateUnitUI() {
 }
 
 // Navigation & Screen View Controller
+let navigationStack = ["view-muscles"];
+
 function switchView(viewId) {
   triggerHaptic(5);
-  document.querySelectorAll(".view").forEach(v => {
-    v.classList.remove("active");
-  });
-  const target = document.getElementById(viewId);
-  if (target) {
-    target.classList.add("active");
+
+  const currentViewId = navigationStack[navigationStack.length - 1];
+  if (currentViewId === viewId) return;
+
+  let direction = "push"; // default to push (slide left)
+
+  // Reset navigation to main menu on completion/reset/cancel
+  if (viewId === "view-muscles" && navigationStack.length > 1) {
+    direction = "pop";
+    navigationStack = ["view-muscles"];
+  } else if (navigationStack.length > 1 && navigationStack[navigationStack.length - 2] === viewId) {
+    // Going back one step
+    direction = "pop";
+    navigationStack.pop();
+  } else {
+    // Going forward
+    direction = "push";
+    navigationStack.push(viewId);
+  }
+
+  const currentView = document.getElementById(currentViewId);
+  const targetView = document.getElementById(viewId);
+
+  if (targetView) {
+    // Remove all transition classes first
+    document.querySelectorAll(".view").forEach(v => {
+      v.classList.remove("active", "slide-push-enter", "slide-push-exit", "slide-pop-enter", "slide-pop-exit");
+      v.style.display = "none";
+    });
+
+    if (currentView && currentViewId !== viewId) {
+      currentView.style.display = "block";
+      currentView.classList.add(direction === "push" ? "slide-push-exit" : "slide-pop-exit");
+
+      // Hide the old view after slide animation finishes
+      setTimeout(() => {
+        currentView.style.display = "none";
+        currentView.classList.remove("slide-push-exit", "slide-pop-exit");
+      }, 350);
+    }
+
+    targetView.style.display = "block";
+    targetView.classList.add("active", direction === "push" ? "slide-push-enter" : "slide-pop-enter");
+
+    // Smooth scroll to top
     window.scrollTo({ top: 0, behavior: "smooth" });
+
+    // Clean up animation classes from target view after transition finishes
+    setTimeout(() => {
+      targetView.classList.remove("slide-push-enter", "slide-pop-enter");
+    }, 350);
   }
 }
 
@@ -3463,11 +3509,32 @@ function initApp() {
   if (btnToggleEdit) btnToggleEdit.addEventListener("click", toggleFocusMode); // Reuse Focus logic if required or default
 }
 
+function initIosInstallBanner() {
+  const userAgent = (window.navigator.userAgent || "").toLowerCase();
+  const isIos = /iphone|ipad|ipod/.test(userAgent);
+  const isStandalone = window.navigator.standalone === true;
+
+  if (isIos && !isStandalone) {
+    const isDismissed = sessionStorage.getItem("ios-install-banner-dismissed");
+    if (!isDismissed) {
+      const banner = document.getElementById("iosInstallBanner");
+      if (banner) {
+        banner.style.display = "block";
+        setTimeout(() => {
+          banner.style.opacity = "1";
+          banner.style.transform = "translateY(0)";
+        }, 100);
+      }
+    }
+  }
+}
+
 // DOM Setup Binder
 document.addEventListener("DOMContentLoaded", async () => {
   // Load data & set up tabs
   await loadAllData();
   initApp();
+  initIosInstallBanner();
 
   // Automatically open native calendar picker when tapping anywhere on the date input
   document.querySelectorAll('input[type="date"]').forEach(input => {
@@ -3502,10 +3569,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     const settingsModal = document.getElementById("settingsModal");
     if (settingsModal) {
       settingsModal.style.display = "flex";
-      settingsModal.offsetHeight;
-      settingsModal.style.opacity = "1";
+      settingsModal.offsetHeight; // force reflow
+      settingsModal.classList.add("active");
       const headlineInput = document.getElementById("headlineInput");
       if (headlineInput) headlineInput.value = state.headline;
+      
+      const chk = document.getElementById("chkSynthwave");
+      if (chk) chk.checked = state.synthPlaying;
     }
   });
 
@@ -3513,7 +3583,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     triggerHaptic(5);
     const settingsModal = document.getElementById("settingsModal");
     if (settingsModal) {
-      settingsModal.style.opacity = "0";
+      settingsModal.classList.remove("active");
       setTimeout(() => {
         settingsModal.style.display = "none";
       }, 300);
@@ -3544,6 +3614,29 @@ document.addEventListener("DOMContentLoaded", async () => {
     } else {
       startSynthwaveBeats();
     }
+  });
+
+  document.getElementById("chkSynthwave")?.addEventListener("change", (e) => {
+    triggerHaptic(10);
+    if (e.target.checked) {
+      startSynthwaveBeats();
+    } else {
+      stopSynthwaveBeats();
+    }
+  });
+
+  // iOS Install Banner close binder
+  document.getElementById("btnCloseInstallBanner")?.addEventListener("click", () => {
+    triggerHaptic(5);
+    const banner = document.getElementById("iosInstallBanner");
+    if (banner) {
+      banner.style.opacity = "0";
+      banner.style.transform = "translateY(20px)";
+      setTimeout(() => {
+        banner.style.display = "none";
+      }, 300);
+    }
+    sessionStorage.setItem("ios-install-banner-dismissed", "true");
   });
 
   // Navigation binders
@@ -4289,6 +4382,8 @@ function startSynthwaveBeats() {
     playSequencerStep();
     synthwaveInterval = setInterval(playSequencerStep, stepDuration * 1000);
     
+    const chk = document.getElementById("chkSynthwave");
+    if (chk) chk.checked = true;
     const btn = document.getElementById("btnToggleSynthwave");
     if (btn) {
       btn.innerHTML = "🔊 ON";
@@ -4314,6 +4409,8 @@ function stopSynthwaveBeats() {
     synthwaveAudioCtx = null;
   }
   
+  const chk = document.getElementById("chkSynthwave");
+  if (chk) chk.checked = false;
   const btn = document.getElementById("btnToggleSynthwave");
   if (btn) {
     btn.innerHTML = "🔇 OFF";

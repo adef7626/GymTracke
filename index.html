@@ -440,68 +440,92 @@
     </section>
 
     <!-- Glassmorphic Settings Modal Popup -->
-    <div id="settingsModal" class="modal-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(2,3,11,0.85);z-index:9999;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);align-items:center;justify-content:center;opacity:0;transition:opacity 0.3s ease;">
-      <div class="modal-card" style="width:92%;max-width:400px;background:var(--card-bg);border-radius:var(--radius-lg);padding:24px;border:1px solid rgba(255, 255, 255, 0.08);box-shadow:var(--shadow-premium);display:flex;flex-direction:column;gap:16px;animation:zoomIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-        <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:10px;">
-          <div class="modal-title" style="font-size:1.1rem;font-weight:800;color:var(--text-highlight);letter-spacing:0.02em;text-transform:uppercase;">⚙️ Cyber Deck Settings</div>
-          <button id="btnCloseSettings" class="modal-close-btn" style="background:transparent;border:none;color:var(--text-muted);font-size:1.6rem;cursor:pointer;transition:color 0.2s;line-height:1;">&times;</button>
+    <div id="settingsModal" class="modal-overlay">
+      <div class="modal-card">
+        <!-- iOS Style Drag Handle -->
+        <div class="modal-handle"></div>
+
+        <div class="modal-header">
+          <div class="modal-title">⚙️ Cyber Deck Settings</div>
+          <button id="btnCloseSettings" class="modal-close-btn">&times;</button>
         </div>
         
         <!-- Setting 1: Edit Title -->
-        <div class="setting-item" style="display:flex;flex-direction:column;gap:6px;">
-          <label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px;">Edit Deck Title</label>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <input type="text" id="headlineInput" placeholder="Deck Title" style="margin-bottom:0;flex:1;" />
-            <button id="btnSaveHeadline" class="btn btn-primary btn-sm btn-rect" style="min-height:36px;border-radius:var(--radius-sm);">Save</button>
+        <div class="setting-item">
+          <label>Edit Deck Title</label>
+          <div class="setting-inline-group">
+            <input type="text" id="headlineInput" placeholder="Deck Title" />
+            <button id="btnSaveHeadline" class="btn btn-primary btn-sm btn-rect">Save</button>
           </div>
         </div>
 
         <!-- Setting 2: Skin Select & Beat Toggle -->
-        <div class="setting-row" style="display:flex;gap:12px;">
-          <div style="flex:1.2;">
-            <label for="themeSelect" style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Skin Select</label>
-            <select id="themeSelect" style="margin-bottom:0;min-height:36px;padding:8px 12px;font-size:0.85rem;border-radius:var(--radius-sm);">
+        <div class="setting-row">
+          <div class="setting-col-skin">
+            <label for="themeSelect">Skin Select</label>
+            <select id="themeSelect">
               <option value="orange">Cyber Orange</option>
               <option value="acid">Neon Acid</option>
               <option value="synthwave">Synthwave Sunset</option>
               <option value="stealth">Deep Stealth</option>
             </select>
           </div>
-          <div style="flex:0.8;">
-            <label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;white-space:nowrap;">Synth Beats</label>
-            <button id="btnToggleSynthwave" class="btn btn-secondary btn-sm btn-rect" style="width:100%;min-height:36px;border-radius:var(--radius-sm);font-size:0.82rem;">🔇 OFF</button>
+          <div class="setting-col-beats">
+            <label>Synth Beats</label>
+            <div class="toggle-switch-wrapper">
+              <input type="checkbox" id="chkSynthwave" style="display:none;" />
+              <label for="chkSynthwave" class="ios-switch-label">
+                <span class="ios-switch-inner"></span>
+              </label>
+            </div>
           </div>
         </div>
 
         <!-- Setting 3: Import & Export Backups -->
-        <div class="setting-item" style="display:flex;flex-direction:column;gap:6px;">
-          <label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Backups Controller</label>
-          <div style="display:flex;gap:8px;">
-            <button id="btnExportData" class="btn btn-secondary btn-sm btn-rect" style="flex:1;min-height:36px;border-radius:var(--radius-sm);font-size:0.82rem;">⬇️ Export Backup</button>
-            <button id="btnImportData" class="btn btn-secondary btn-sm btn-rect" style="flex:1;min-height:36px;border-radius:var(--radius-sm);font-size:0.82rem;">⬆️ Import Backup</button>
+        <div class="setting-item">
+          <label>Backups Controller</label>
+          <div class="setting-inline-group">
+            <button id="btnExportData" class="btn btn-secondary btn-sm btn-rect" style="flex:1;">⬇️ Export Backup</button>
+            <button id="btnImportData" class="btn btn-secondary btn-sm btn-rect" style="flex:1;">⬆️ Import Backup</button>
             <input type="file" id="importFileInput" accept="application/json" style="display:none;" />
           </div>
         </div>
 
         <!-- Setting: Weight Unit Switch -->
-        <div class="setting-item" style="display:flex;flex-direction:column;gap:6px;">
-          <label for="unitSelect" style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Weight Unit (Global)</label>
-          <select id="unitSelect" style="margin-bottom:0;min-height:36px;padding:8px 12px;font-size:0.85rem;border-radius:var(--radius-sm);background:#0d0e1b;border:1px solid rgba(255,255,255,0.08);color:var(--text-main);outline:none;">
-            <option value="kg" style="background:#0a0c22;color:var(--text-main);">Metric (kg)</option>
-            <option value="lbs" style="background:#0a0c22;color:var(--text-main);">Imperial (lbs)</option>
+        <div class="setting-item">
+          <label for="unitSelect">Weight Unit (Global)</label>
+          <select id="unitSelect" class="unit-select-native">
+            <option value="kg">Metric (kg)</option>
+            <option value="lbs">Imperial (lbs)</option>
           </select>
         </div>
 
-        <div class="setting-item" style="display:flex;flex-direction:column;gap:6px;">
-          <label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Exercise Library</label>
-          <button id="btnOpenExManager" class="btn btn-secondary btn-sm btn-rect" style="width:100%;min-height:36px;border-radius:var(--radius-sm);font-size:0.82rem;">📋 Manage Exercises</button>
+        <!-- Setting: Exercise Library -->
+        <div class="setting-item">
+          <label>Exercise Library</label>
+          <button id="btnOpenExManager" class="btn btn-secondary btn-sm btn-rect" style="width:100%;">📋 Manage Exercises</button>
         </div>
 
         <!-- Setting 4: Force Reload Cache & Factory Reset -->
-        <div class="setting-item" style="border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;margin-top:8px;display:flex;gap:8px;">
-          <button id="btnForceReload" class="btn btn-cyan btn-sm btn-rect" style="flex:1;min-height:38px;border-radius:var(--radius-sm);font-size:0.82rem;">🔄 Force Update Shell</button>
-          <button id="btnGoToReset" class="btn btn-danger btn-sm btn-rect" style="flex:1;min-height:38px;border-radius:var(--radius-sm);font-size:0.82rem;">🧨 Factory Reset</button>
+        <div class="setting-item danger-row">
+          <button id="btnForceReload" class="btn btn-cyan btn-sm btn-rect" style="flex:1;">🔄 Force Update Shell</button>
+          <button id="btnGoToReset" class="btn btn-danger btn-sm btn-rect" style="flex:1;">🧨 Factory Reset</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Floating iOS Install PWA Banner -->
+    <div id="iosInstallBanner" class="ios-install-banner" style="display:none;">
+      <div class="ios-install-banner-content">
+        <button id="btnCloseInstallBanner" class="ios-install-close-btn">&times;</button>
+        <div class="ios-install-title">📲 Install Adrenaline Forge</div>
+        <p class="ios-install-text">
+          Add this application to your Home Screen to unlock a full-screen, offline-enabled native experience:
+        </p>
+        <ol class="ios-install-steps">
+          <li>Tap the <strong>Share</strong> button <span class="ios-share-icon">⎋</span> at the bottom of Safari.</li>
+          <li>Scroll down and select <strong>Add to Home Screen</strong> <span class="ios-plus-icon">⊕</span>.</li>
+        </ol>
       </div>
     </div>
   </div>

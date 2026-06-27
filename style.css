@@ -3,33 +3,33 @@
    ========================================================================== */
 
 :root {
-  /* Color Palette - Space Cyberpunk & Adrenaline Orange */
-  --bg: #03040c;
-  --bg-gradient: radial-gradient(circle at 50% 0%, #151b36 0%, #03040c 70%, #000000 100%);
-  --card-bg: rgba(12, 14, 33, 0.72);
-  --card-glow: rgba(255, 140, 26, 0.05);
+  /* Color Palette - space minimalist & accent tones */
+  --bg: #090a11;
+  --bg-gradient: linear-gradient(180deg, #090a11 0%, #05060a 100%);
+  --card-bg: #151622;
+  --card-glow: transparent;
   
   --accent: #ff8c1a;
-  --accent-glow: rgba(255, 140, 26, 0.4);
-  --accent-deep: #ff5500;
-  --accent-neon: #ffaa44;
+  --accent-glow: rgba(255, 140, 26, 0.15);
+  --accent-deep: #ff6600;
+  --accent-neon: #ffa64d;
   
   --cyan: #00e5ff;
-  --cyan-glow: rgba(0, 229, 255, 0.35);
+  --cyan-glow: rgba(0, 229, 255, 0.15);
   --cyan-deep: #0099b8;
   
   --text-main: #f5f6fa;
-  --text-muted: #8d94c0;
+  --text-muted: #8e95be;
   --text-highlight: #ffffff;
   
-  --border-soft: rgba(255, 255, 255, 0.06);
-  --border-glow: rgba(255, 140, 26, 0.2);
-  --border-cyan: rgba(0, 229, 255, 0.2);
+  --border-soft: rgba(255, 255, 255, 0.05);
+  --border-glow: rgba(255, 140, 26, 0.1);
+  --border-cyan: rgba(0, 229, 255, 0.1);
   
   --danger: #ff4747;
-  --danger-glow: rgba(255, 71, 71, 0.3);
+  --danger-glow: rgba(255, 71, 71, 0.15);
   --success: #00e676;
-  --success-glow: rgba(0, 230, 118, 0.3);
+  --success-glow: rgba(0, 230, 118, 0.15);
   --info: #2979ff;
   
   /* Layout Metrics */
@@ -38,9 +38,9 @@
   --radius-sm: 8px;
   --control-height: 48px;
   --control-height-sm: 38px;
-  --shadow-premium: 0 20px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  --shadow-neon: 0 0 15px rgba(255, 140, 26, 0.15);
-  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --shadow-premium: 0 10px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  --shadow-neon: none;
+  --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, 'Inter', sans-serif;
 }
 
 /* Reset & Base Elements */
@@ -71,7 +71,7 @@ body {
   display: flex;
   justify-content: center;
   overflow-x: hidden;
-  padding: 20px 12px;
+  padding: calc(20px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
   margin: 0;
 }
 
@@ -166,28 +166,18 @@ h1 {
   border-radius: var(--radius-lg);
   padding: 24px;
   border: 1px solid var(--border-soft);
-  backdrop-filter: blur(14px) saturate(180%);
-  -webkit-backdrop-filter: blur(14px) saturate(180%);
   box-shadow: var(--shadow-premium);
   position: relative;
   overflow: hidden;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
   margin-bottom: 16px;
 }
 
 .card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, transparent, rgba(255, 140, 26, 0.2), transparent);
+  display: none; /* Strip top glow strip for minimalist styling */
 }
 
 .card:hover {
-  border-color: rgba(255, 140, 26, 0.15);
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.7), 0 0 20px rgba(255, 140, 26, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .card-header {
@@ -291,14 +281,13 @@ select:focus, input:focus {
   align-items: flex-start;
   padding: 16px 20px 16px 36px;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(14, 16, 38, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.02);
   color: var(--text-main);
   cursor: pointer;
   position: relative;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transition: all 0.2s ease;
   min-height: 68px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
 }
 
 .muscle-tab::before {
@@ -307,31 +296,26 @@ select:focus, input:focus {
   left: 18px;
   top: 50%;
   transform: translateY(-50%);
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 10px var(--accent);
-  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.2);
+  transition: all 0.2s ease;
 }
 
 .muscle-tab:hover {
-  transform: translateY(-2px);
-  background: rgba(22, 25, 58, 0.85);
-  border-color: rgba(255, 140, 26, 0.3);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .muscle-tab.active {
-  background: radial-gradient(circle at 0% 50%, rgba(255, 140, 26, 0.2) 0%, rgba(14, 16, 38, 0.95) 100%);
+  background: rgba(255, 255, 255, 0.06);
   border-color: var(--accent);
-  box-shadow: 0 8px 30px rgba(255, 140, 26, 0.15);
 }
 
 .muscle-tab.active::before {
-  background: #ffffff;
-  box-shadow: 0 0 12px #ffffff;
-  transform: translateY(-50%) scale(1.3);
+  background: var(--accent);
+  transform: translateY(-50%) scale(1.2);
 }
 
 .muscle-name {
@@ -365,9 +349,8 @@ select:focus, input:focus {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--accent-neon) 0%, var(--accent-deep) 100%);
-  color: #03040c;
-  box-shadow: 0 8px 24px rgba(255, 106, 0, 0.35);
+  background: var(--accent);
+  color: #ffffff;
 }
 
 .btn-primary:hover {
@@ -387,48 +370,40 @@ select:focus, input:focus {
 
 .btn-secondary:hover {
   background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 140, 26, 0.3);
-  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .btn-cyan {
-  background: rgba(0, 229, 255, 0.08);
+  background: rgba(0, 229, 255, 0.05);
   color: var(--cyan);
-  border: 1px solid rgba(0, 229, 255, 0.25);
-  box-shadow: 0 4px 15px rgba(0, 229, 255, 0.05);
+  border: 1px solid rgba(0, 229, 255, 0.15);
 }
 
 .btn-cyan:hover {
-  background: rgba(0, 229, 255, 0.15);
+  background: rgba(0, 229, 255, 0.1);
   border-color: var(--cyan);
-  box-shadow: 0 8px 25px rgba(0, 229, 255, 0.2);
-  transform: translateY(-1px);
 }
 
 .btn-danger {
-  background: rgba(255, 71, 71, 0.08);
+  background: rgba(255, 71, 71, 0.05);
   color: #ff7777;
-  border: 1px solid rgba(255, 71, 71, 0.25);
+  border: 1px solid rgba(255, 71, 71, 0.15);
 }
 
 .btn-danger:hover {
-  background: rgba(255, 71, 71, 0.18);
+  background: rgba(255, 71, 71, 0.1);
   border-color: var(--danger);
-  box-shadow: 0 8px 25px rgba(255, 71, 71, 0.2);
-  transform: translateY(-1px);
 }
 
 .btn-success {
-  background: rgba(0, 230, 118, 0.08);
+  background: rgba(0, 230, 118, 0.05);
   color: #66ffa6;
-  border: 1px solid rgba(0, 230, 118, 0.25);
+  border: 1px solid rgba(0, 230, 118, 0.15);
 }
 
 .btn-success:hover {
-  background: rgba(0, 230, 118, 0.18);
+  background: rgba(0, 230, 118, 0.1);
   border-color: var(--success);
-  box-shadow: 0 8px 25px rgba(0, 230, 118, 0.2);
-  transform: translateY(-1px);
 }
 
 .btn-sm {
@@ -481,9 +456,9 @@ select:focus, input:focus {
 
 /* Dynamic Sets Matrix */
 .sets-list {
-  background: rgba(4, 5, 15, 0.6);
+  background: rgba(255, 255, 255, 0.02);
   border-radius: var(--radius-md);
-  border: 1px dashed rgba(255, 140, 26, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.04);
   padding: 16px;
   margin-top: 12px;
   display: flex;
@@ -945,34 +920,34 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 [data-theme="acid"] {
   --accent: #39ff14;
-  --accent-glow: rgba(57, 255, 20, 0.4);
-  --accent-deep: #00ff00;
-  --accent-neon: #adff2f;
+  --accent-glow: rgba(57, 255, 20, 0.15);
+  --accent-deep: #00e600;
+  --accent-neon: #8eed2f;
   --cyan: #00e5ff;
-  --cyan-glow: rgba(0, 229, 255, 0.35);
+  --cyan-glow: rgba(0, 229, 255, 0.15);
   --cyan-deep: #0099b8;
-  --border-soft: rgba(255, 255, 255, 0.06);
-  --bg-gradient: radial-gradient(circle at 50% 0%, #0a2608 0%, #02030b 70%, #000000 100%);
+  --border-soft: rgba(255, 255, 255, 0.05);
+  --bg-gradient: linear-gradient(180deg, #050d03 0%, #020308 100%);
 }
 
 [data-theme="synthwave"] {
   --accent: #ff007f;
-  --accent-glow: rgba(255, 0, 127, 0.45);
-  --accent-deep: #b000b0;
-  --accent-neon: #ff66cc;
+  --accent-glow: rgba(255, 0, 127, 0.15);
+  --accent-deep: #cc00cc;
+  --accent-neon: #ff4db2;
   --cyan: #00e5ff;
-  --cyan-glow: rgba(0, 229, 255, 0.35);
-  --bg-gradient: radial-gradient(circle at 50% 0%, #29083a 0%, #03040c 70%, #000000 100%);
+  --cyan-glow: rgba(0, 229, 255, 0.15);
+  --bg-gradient: linear-gradient(180deg, #0d0413 0%, #03040c 100%);
 }
 
 [data-theme="stealth"] {
   --accent: #e0e0e0;
-  --accent-glow: rgba(255, 255, 255, 0.2);
-  --accent-deep: #555555;
+  --accent-glow: rgba(255, 255, 255, 0.1);
+  --accent-deep: #666666;
   --accent-neon: #ffffff;
   --cyan: #888888;
-  --cyan-glow: rgba(136, 136, 136, 0.15);
-  --bg-gradient: radial-gradient(circle at 50% 0%, #1c1c1c 0%, #030303 70%, #000000 100%);
+  --cyan-glow: rgba(136, 136, 136, 0.1);
+  --bg-gradient: linear-gradient(180deg, #101014 0%, #040407 100%);
 }
 
 /* ==========================================================================
@@ -980,30 +955,24 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
    ========================================================================== */
 
 .muscle-tab.fatigued {
-  border-color: var(--danger) !important;
-  box-shadow: 0 4px 15px rgba(255, 71, 71, 0.15);
+  border-color: rgba(255, 71, 71, 0.4) !important;
 }
 .muscle-tab.fatigued::before {
   background: var(--danger) !important;
-  box-shadow: 0 0 10px var(--danger);
 }
 
 .muscle-tab.ready {
-  border-color: var(--accent) !important;
-  box-shadow: 0 4px 15px rgba(255, 140, 26, 0.15);
+  border-color: rgba(255, 140, 26, 0.4) !important;
 }
 .muscle-tab.ready::before {
   background: var(--accent) !important;
-  box-shadow: 0 0 10px var(--accent);
 }
 
 .muscle-tab.cold {
-  border-color: var(--cyan) !important;
-  box-shadow: 0 4px 15px rgba(0, 229, 255, 0.15);
+  border-color: rgba(0, 229, 255, 0.4) !important;
 }
 .muscle-tab.cold::before {
   background: var(--cyan) !important;
-  box-shadow: 0 0 10px var(--cyan);
 }
 
 /* ==========================================================================
@@ -1012,11 +981,10 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 .stat.badge-active {
   opacity: 1 !important;
-  background: rgba(255, 140, 26, 0.08) !important;
+  background: rgba(255, 140, 26, 0.05) !important;
   border-color: var(--accent) !important;
-  box-shadow: 0 0 15px rgba(255, 140, 26, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   transform: translateY(-2px);
-  transition: all 0.4s ease;
+  transition: all 0.3s ease;
 }
 
 .stats-row .stat {
@@ -1025,28 +993,24 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .stats-row .stat:hover {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
   opacity: 0.8 !important;
-  border-color: rgba(255, 140, 26, 0.25) !important;
-  box-shadow: 0 6px 18px rgba(255, 140, 26, 0.12);
+  border-color: rgba(255, 140, 26, 0.15) !important;
 }
 
 [data-theme="acid"] .stat.badge-active {
-  background: rgba(57, 255, 20, 0.08) !important;
+  background: rgba(57, 255, 20, 0.05) !important;
   border-color: var(--accent) !important;
-  box-shadow: 0 0 15px rgba(57, 255, 20, 0.2) !important;
 }
 
 [data-theme="synthwave"] .stat.badge-active {
-  background: rgba(255, 0, 127, 0.08) !important;
+  background: rgba(255, 0, 127, 0.05) !important;
   border-color: var(--accent) !important;
-  box-shadow: 0 0 15px rgba(255, 0, 127, 0.25) !important;
 }
 
 [data-theme="stealth"] .stat.badge-active {
-  background: rgba(255, 255, 255, 0.08) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
   border-color: var(--accent) !important;
-  box-shadow: 0 0 15px rgba(255, 255, 255, 0.2) !important;
 }
 
 /* ==========================================================================
@@ -3219,3 +3183,335 @@ select.mode-select option {
   42%, 55% { -webkit-transform: rotate(18deg) translate3d(0, 0, 0); }
   82% { -webkit-transform: rotate(0deg) translate3d(-2px, 30px, 0); }
 }
+
+/* ==========================================================================
+   iOS NATIVE LOOK & FEEL OPTIMIZATIONS
+   ========================================================================== */
+
+/* 1. Touch & Scroll Optimizations */
+.ex-manager-list, .history-list, .bodyweight-history-list, .date-history-list {
+  -webkit-overflow-scrolling: touch; /* iOS momentum inertia scroll */
+}
+
+/* Click/Touch Responsiveness & Disable selection overlays */
+button, .btn, .chip, .stat, header, .card-title, .top-bar span, .muscle-tab {
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation; /* Eliminate double-tap 300ms delays */
+}
+
+/* 2. Tactile Press Feedback Animations */
+.btn:active, .muscle-tab:active, .stat:active, .chip:active, .overview-item:active {
+  transform: scale(0.96);
+  transition: transform 0.08s ease;
+}
+
+/* 3. iOS View-to-View Transitions (Horizontal Slide) */
+.app {
+  position: relative;
+  overflow-x: hidden;
+}
+
+.view {
+  display: none;
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform, opacity;
+}
+
+.view.active {
+  display: block;
+  position: relative; /* target view sizes container height dynamically */
+}
+
+/* Forward transition (push): New view enters from right, old exits to left */
+.slide-push-enter {
+  display: block !important;
+  animation: iosPushEnter 0.35s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+.slide-push-exit {
+  display: block !important;
+  position: absolute !important;
+  animation: iosPushExit 0.35s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+/* Backward transition (pop): New view enters from left, old exits to right */
+.slide-pop-enter {
+  display: block !important;
+  animation: iosPopEnter 0.35s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+.slide-pop-exit {
+  display: block !important;
+  position: absolute !important;
+  animation: iosPopExit 0.35s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+@keyframes iosPushEnter {
+  0% { transform: translate3d(100%, 0, 0); opacity: 0.9; }
+  100% { transform: translate3d(0, 0, 0); opacity: 1; }
+}
+@keyframes iosPushExit {
+  0% { transform: translate3d(0, 0, 0); opacity: 1; }
+  100% { transform: translate3d(-25%, 0, 0); opacity: 0.5; }
+}
+
+@keyframes iosPopEnter {
+  0% { transform: translate3d(-25%, 0, 0); opacity: 0.5; }
+  100% { transform: translate3d(0, 0, 0); opacity: 1; }
+}
+@keyframes iosPopExit {
+  0% { transform: translate3d(0, 0, 0); opacity: 1; }
+  100% { transform: translate3d(100%, 0, 0); opacity: 0.9; }
+}
+
+/* 4. Settings Bottom Sheet Layout styling */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(2, 3, 11, 0);
+  z-index: 9999;
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+  transition: background-color 0.3s ease, backdrop-filter 0.3s ease, -webkit-backdrop-filter 0.3s ease;
+  align-items: flex-end; /* Pin to bottom */
+  justify-content: center;
+}
+
+.modal-overlay.active {
+  display: flex;
+  background: rgba(2, 3, 11, 0.78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 500px;
+  background: var(--card-bg);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0; /* Rounded top only */
+  padding: 16px 24px calc(24px + env(safe-area-inset-bottom)); /* padding accounts for dynamic bottom bar safe margin */
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: none;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transform: translateY(100%);
+  transition: transform 0.32s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.modal-overlay.active .modal-card {
+  transform: translateY(0);
+}
+
+/* iOS bottom sheet drag indicator handle */
+.modal-handle {
+  width: 38px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 99px;
+  margin: -6px auto 10px;
+}
+
+/* 5. Custom Bottom-sheet Grid & Form styling */
+.setting-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.setting-col-skin {
+  flex: 1.2;
+}
+
+.setting-col-beats {
+  flex: 0.8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.setting-col-beats label {
+  white-space: nowrap;
+}
+
+.setting-inline-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+
+.setting-inline-group input {
+  margin-bottom: 0;
+  flex: 1;
+}
+
+.setting-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.setting-item label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.danger-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 16px;
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  flex-direction: row !important;
+}
+
+/* iOS Toggle Switch Switch styling */
+.toggle-switch-wrapper {
+  position: relative;
+  width: 51px;
+  height: 31px;
+}
+
+.ios-switch-label {
+  display: block;
+  width: 51px;
+  height: 31px;
+  background-color: rgba(255, 255, 255, 0.12);
+  border-radius: 100px;
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.ios-switch-inner {
+  display: block;
+  width: 25px;
+  height: 25px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+input[type="checkbox"]:checked + .ios-switch-label {
+  background-color: var(--success);
+}
+
+input[type="checkbox"]:checked + .ios-switch-label .ios-switch-inner {
+  transform: translate3d(20px, 0, 0);
+}
+
+/* Native select menu styling overrides for settings */
+.unit-select-native {
+  margin-bottom: 0;
+  min-height: 36px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  border-radius: var(--radius-sm);
+  background: #0d0e1b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+  outline: none;
+}
+
+/* 6. Floating iOS Safari Install PWA Banner */
+.ios-install-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  z-index: 10000;
+  background: rgba(12, 14, 33, 0.88);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transform: translateY(100%);
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease;
+}
+
+.ios-install-banner-content {
+  max-width: 480px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.ios-install-close-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.ios-install-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.ios-install-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-highlight);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.ios-install-text {
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.ios-install-steps {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--text-main);
+  padding-left: 20px;
+}
+
+.ios-install-steps li {
+  margin-bottom: 6px;
+}
+
+.ios-share-icon, .ios-plus-icon {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  vertical-align: middle;
+  color: var(--cyan);
+}
+
