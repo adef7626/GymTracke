@@ -989,7 +989,7 @@ function handleExerciseChange() {
   updateLoggingInterface(currentMeta.type);
 }
 
-function updateLoggingInterface(type) {
+function updateLoggingInterface(type, forceRebuildSets = false) {
   // Update type description hint
   const hint = document.getElementById("exerciseTypeHint");
   if (hint) {
@@ -1012,8 +1012,12 @@ function updateLoggingInterface(type) {
     volumeLabel.textContent = type === "cardio" ? "Total Time" : (type === "bodyweight" ? "Total Reps" : "Total Volume");
   }
 
-  // Pre-fill sets based on history and training mode
-  buildSuggestedSets(type);
+  // Only rebuild sets if there are none yet, OR if a forced rebuild was explicitly requested.
+  // This prevents user-entered set rows from being wiped when tapping/selecting inputs.
+  const existingRows = document.querySelectorAll("#setsList .set-row");
+  if (existingRows.length === 0 || forceRebuildSets) {
+    buildSuggestedSets(type);
+  }
 
   // Update exercise recap / stats (1RM, volume, charts)
   refreshExerciseStats();
@@ -3692,7 +3696,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         saveAllData();
       }
     }
-    updateLoggingInterface(newType);
+    // When user manually changes the exercise type, always rebuild sets.
+    // forceRebuildSets=true so user sees sets appropriate for the new type.
+    updateLoggingInterface(newType, true);
   });
 
   // Date-wise History View
