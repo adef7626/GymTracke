@@ -3591,4 +3591,109 @@ input[type="checkbox"]:checked + .ios-switch-label .ios-switch-inner {
   height: 0 !important;
 }
 
+/* Premium Rest Timer Widget */
+.rest-timer-widget {
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.rest-timer-widget.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Checkoff buttons inside set rows */
+.set-check-btn {
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--accent);
+  background: rgba(255, 140, 26, 0.03);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+  outline: none;
+}
+
+.set-check-btn.is-complete {
+  background: var(--success);
+  border: 1px solid var(--success);
+  color: #ffffff;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 12px var(--success-glow);
+}
+
+.set-check-btn:active {
+  transform: scale(0.92);
+}
+
+/* Completed set row styling (lock input fields and fade opacity) */
+.set-row-complete select,
+.set-row-complete input:not(.set-check-btn) {
+  opacity: 0.45;
+  border-color: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.01);
+  pointer-events: none; /* lock editing when checked */
+  transition: all 0.25s ease;
+}
+
+.set-row-complete label {
+  opacity: 0.3;
+}
+
+/* Accordion Arrow */
+.expand-arrow {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-left: 8px;
+}
+
+.overview-item.is-expanded .expand-arrow {
+  transform: rotate(180deg);
+  color: var(--accent);
+}
+
+/* Detailed expanded section */
+.overview-details {
+  display: none;
+  margin-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 16px;
+  animation: slideDownFade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.overview-item.is-expanded .overview-details {
+  display: block;
+}
+
+@keyframes slideDownFade {
+  0% { opacity: 0; transform: translateY(-6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Detail Chart Canvas container */
+.detail-chart-wrapper {
+  height: 180px;
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.detail-chart-canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.attack-exercise-btn {
+  box-shadow: 0 8px 24px rgba(0, 229, 255, 0.15);
+}
+
+
+
 

@@ -199,6 +199,23 @@
           </button>
         </div>
 
+        <!-- Rest Timer Widget (hidden by default) -->
+        <div id="restTimerWidget" class="rest-timer-widget" style="display:none;">
+          <div class="rest-timer-content" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(255, 140, 26, 0.08);border:1px solid rgba(255, 140, 26, 0.15);border-radius:var(--radius-md);margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:1.1rem;animation:pulse 1.5s infinite;">⏳</span>
+              <span id="restTimerLabel" style="font-size:0.85rem;font-weight:700;color:var(--text-highlight);letter-spacing:0.02em;">Rest Timer: 60s</span>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button id="btnTimerPlus30" class="btn btn-secondary btn-sm" style="min-height:28px;padding:2px 8px;font-size:0.75rem;margin:0;">+30s</button>
+              <button id="btnTimerSkip" class="btn btn-danger btn-sm" style="min-height:28px;padding:2px 8px;font-size:0.75rem;margin:0;">Skip</button>
+            </div>
+          </div>
+          <div style="height:3px;background:rgba(255,255,255,0.05);border-radius:99px;overflow:hidden;margin-top:-14px;margin-bottom:14px;margin-left:2px;margin-right:2px;">
+            <div id="restTimerProgressBarInner" style="height:100%;width:100%;background:var(--accent);transition:width 1s linear;"></div>
+          </div>
+        </div>
+
         <!-- Dynamic Sets Rows -->
         <div class="sets-list" id="setsList"></div>
 
@@ -250,22 +267,6 @@
         </div>
       </div>
 
-      <!-- Progression Chart Card -->
-      <div id="cardChart" class="card">
-        <div class="card-header">
-          <div class="card-title">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--success);"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-            Progressive Overload Chart
-          </div>
-          <span class="chip">Trend</span>
-        </div>
-        <p class="small-text" style="color:var(--text-muted);font-size:0.75rem;margin-bottom:8px;" id="chartSubtitle">
-          Tracking weight spikes and calculated Epley 1RM over successful battle sessions.
-        </p>
-        <div class="chart-wrapper">
-          <canvas id="progressChart"></canvas>
-        </div>
-      </div>
 
       <div style="margin-top:16px;margin-bottom:8px;">
         <button id="btnWorkoutComplete" class="btn btn-success" style="width:100%;min-height:46px;border-radius:12px;font-size:0.95rem;box-shadow: 0 8px 24px rgba(0, 230, 118, 0.25);">
@@ -506,10 +507,9 @@
           <button id="btnOpenExManager" class="btn btn-secondary btn-sm btn-rect" style="width:100%;">📋 Manage Exercises</button>
         </div>
 
-        <!-- Setting 4: Force Reload Cache & Factory Reset -->
+        <!-- Setting 4: Factory Reset -->
         <div class="setting-item danger-row">
-          <button id="btnForceReload" class="btn btn-cyan btn-sm btn-rect" style="flex:1;">🔄 Force Update Shell</button>
-          <button id="btnGoToReset" class="btn btn-danger btn-sm btn-rect" style="flex:1;">🧨 Factory Reset</button>
+          <button id="btnGoToReset" class="btn btn-danger btn-sm btn-rect" style="width:100%;">🧨 Factory Reset</button>
         </div>
       </div>
     </div>
