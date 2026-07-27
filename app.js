@@ -864,6 +864,11 @@ function initRecapView() {
 
       const item = document.createElement("div");
       item.className = "overview-item";
+      item.style.cursor = "pointer";
+      item.addEventListener("click", () => {
+        triggerHaptic(5);
+        initWorkoutLoggingView(name);
+      });
 
       const header = document.createElement("div");
       header.className = "overview-header";
@@ -872,16 +877,7 @@ function initRecapView() {
       title.className = "overview-title";
       title.textContent = name;
 
-      const logBtn = document.createElement("button");
-      logBtn.className = "btn btn-cyan btn-sm btn-rect";
-      logBtn.innerHTML = "🏋️ Log";
-      logBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        initWorkoutLoggingView(name);
-      });
-
       header.appendChild(title);
-      header.appendChild(logBtn);
 
       const meta = document.createElement("div");
       meta.className = "overview-meta";
@@ -906,23 +902,13 @@ function initRecapView() {
 
       const detailCanvas = document.createElement("canvas");
       detailCanvas.className = "detail-chart-canvas";
-      detailChartWrapper.appendChild(detailCanvas);
-
-      const attackBtn = document.createElement("button");
-      attackBtn.className = "btn btn-primary btn-rect attack-exercise-btn";
-      attackBtn.style.width = "100%";
-      attackBtn.style.minHeight = "44px";
-      attackBtn.style.marginTop = "8px";
-      attackBtn.style.fontWeight = "700";
-      attackBtn.style.borderRadius = "var(--radius-md)";
-      attackBtn.innerHTML = `🚀 Attack this Exercise`;
-      attackBtn.addEventListener("click", () => {
-        initWorkoutLoggingView(name);
+      detailCanvas.addEventListener("click", (e) => {
+        e.stopPropagation(); // allow tooltip interaction on data points
       });
+      detailChartWrapper.appendChild(detailCanvas);
 
       detailsDiv.appendChild(chartTitle);
       detailsDiv.appendChild(detailChartWrapper);
-      detailsDiv.appendChild(attackBtn);
 
       item.appendChild(header);
       item.appendChild(meta);
