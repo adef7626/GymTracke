@@ -588,8 +588,109 @@ function updateUnitUI() {
 // Navigation & Screen View Controller
 let navigationStack = ["view-muscles"];
 
+// Global Rest Timer State & Controllers
+let restTimerInterval = null;
+let restTimeRemaining = 0;
+let restTimeTotal = 60;
+
+function startRestTimer(duration) {
+  if (restTimerInterval) clearInterval(restTimerInterval);
+
+  restTimeRemaining = duration;
+  restTimeTotal = duration;
+
+  const widget = document.getElementById("restTimerWidget");
+  const label = document.getElementById("restTimerLabel");
+  const progressBar = document.getElementById("restTimerProgressBarInner");
+
+  if (!widget || !label || !progressBar) return;
+
+  widget.style.display = "block";
+  widget.offsetHeight; // force reflow
+  widget.classList.add("active");
+
+  updateTimerUI();
+  playSynthBeep(440, 0.08); // Soft start beep
+
+  restTimerInterval = setInterval(() => {
+    restTimeRemaining--;
+    if (restTimeRemaining <= 0) {
+      clearInterval(restTimerInterval);
+      restTimerInterval = null;
+      playTimerFinishedNotification();
+    } else {
+      updateTimerUI();
+    }
+  }, 1000);
+}
+
+function updateTimerUI() {
+  const label = document.getElementById("restTimerLabel");
+  const progressBar = document.getElementById("restTimerProgressBarInner");
+  if (!label || !progressBar) return;
+
+  label.textContent = `Rest Timer: ${restTimeRemaining}s`;
+  const pct = (restTimeRemaining / restTimeTotal) * 100;
+  progressBar.style.width = `${pct}%`;
+}
+
+function playTimerFinishedNotification() {
+  const label = document.getElementById("restTimerLabel");
+  if (label) label.textContent = "Time's Up! Go!";
+  
+  triggerHaptic([30, 50, 30, 50, 30]);
+  playSynthBeep(587.33, 0.15); // D5
+  setTimeout(() => playSynthBeep(880, 0.25), 180); // A5
+
+  setTimeout(() => {
+    if (!restTimerInterval) {
+      hideRestTimer();
+    }
+  }, 3000);
+}
+
+function hideRestTimer() {
+  if (restTimerInterval) {
+    clearInterval(restTimerInterval);
+    restTimerInterval = null;
+  }
+  const widget = document.getElementById("restTimerWidget");
+  if (widget) {
+    widget.classList.remove("active");
+    setTimeout(() => {
+      if (!restTimerInterval) widget.style.display = "none";
+    }, 300);
+  }
+}
+
+function playSynthBeep(frequency, duration) {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(frequency, ctx.currentTime);
+    
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc.start();
+    osc.stop(ctx.currentTime + duration);
+  } catch (e) {
+    console.warn("Audio beep failed", e);
+  }
+}
+
 function switchView(viewId) {
   triggerHaptic(5);
+  hideRestTimer(); // Cleanly cancel timer when switching views
+
 
   const currentViewId = navigationStack[navigationStack.length - 1];
   if (currentViewId === viewId) return;
@@ -746,6 +847,12 @@ function initRecapView() {
   }
   state.overviewCharts = [];
 
+  // Destroy active detail chart on entry
+  if (state.detailChartInstance) {
+    state.detailChartInstance.destroy();
+    state.detailChartInstance = null;
+  }
+
   // Find all exercises logged for this muscle
   const allLogs = state.entries.filter(e => e.muscle === state.selectedMuscle && e.exercise !== "__muscle_complete__");
   const uniqueLoggedNames = Array.from(new Set(allLogs.map(l => l.exercise)));
@@ -764,16 +871,24 @@ function initRecapView() {
       const item = document.createElement("div");
       item.className = "overview-item";
       item.style.cursor = "pointer";
-      item.addEventListener("click", () => {
-        initWorkoutLoggingView(name);
-      });
 
       const header = document.createElement("div");
       header.className = "overview-header";
 
+      const titleGroup = document.createElement("div");
+      titleGroup.style.display = "flex";
+      titleGroup.style.alignItems = "center";
+
       const title = document.createElement("span");
       title.className = "overview-title";
       title.textContent = name;
+
+      const arrow = document.createElement("span");
+      arrow.className = "expand-arrow";
+      arrow.textContent = "▼";
+
+      titleGroup.appendChild(title);
+      titleGroup.appendChild(arrow);
 
       const logBtn = document.createElement("button");
       logBtn.className = "btn btn-cyan btn-sm btn-rect";
@@ -783,7 +898,7 @@ function initRecapView() {
         initWorkoutLoggingView(name);
       });
 
-      header.appendChild(title);
+      header.appendChild(titleGroup);
       header.appendChild(logBtn);
 
       const meta = document.createElement("div");
@@ -806,9 +921,81 @@ function initRecapView() {
       });
       chartWrapper.appendChild(canvas);
 
+      // Detailed expanded section (hidden by default)
+      const detailsDiv = document.createElement("div");
+      detailsDiv.className = "overview-details";
+      detailsDiv.addEventListener("click", (e) => {
+        e.stopPropagation(); // prevent collapsing when clicking inside details panel
+      });
+
+      const chartTitle = document.createElement("div");
+      chartTitle.style.fontSize = "0.72rem";
+      chartTitle.style.fontWeight = "600";
+      chartTitle.style.color = "var(--text-muted)";
+      chartTitle.style.textTransform = "uppercase";
+      chartTitle.style.letterSpacing = "0.04em";
+      chartTitle.style.marginBottom = "8px";
+      chartTitle.textContent = "Progressive Overload Trend";
+
+      const detailChartWrapper = document.createElement("div");
+      detailChartWrapper.className = "detail-chart-wrapper";
+
+      const detailCanvas = document.createElement("canvas");
+      detailCanvas.className = "detail-chart-canvas";
+      detailChartWrapper.appendChild(detailCanvas);
+
+      const attackBtn = document.createElement("button");
+      attackBtn.className = "btn btn-primary btn-rect attack-exercise-btn";
+      attackBtn.style.width = "100%";
+      attackBtn.style.minHeight = "44px";
+      attackBtn.style.marginTop = "8px";
+      attackBtn.style.fontWeight = "700";
+      attackBtn.style.borderRadius = "var(--radius-md)";
+      attackBtn.innerHTML = `🚀 Attack this Exercise`;
+      attackBtn.addEventListener("click", () => {
+        initWorkoutLoggingView(name);
+      });
+
+      detailsDiv.appendChild(chartTitle);
+      detailsDiv.appendChild(detailChartWrapper);
+      detailsDiv.appendChild(attackBtn);
+
       item.appendChild(header);
       item.appendChild(meta);
       item.appendChild(chartWrapper);
+      item.appendChild(detailsDiv);
+
+      // Collapsible toggle logic
+      item.addEventListener("click", () => {
+        const wasExpanded = item.classList.contains("is-expanded");
+        
+        // Collapse all other items
+        document.querySelectorAll("#overviewList .overview-item").forEach(otherItem => {
+          if (otherItem !== item) {
+            otherItem.classList.remove("is-expanded");
+            const dDiv = otherItem.querySelector(".overview-details");
+            if (dDiv) dDiv.style.display = "none";
+          }
+        });
+
+        // Toggle this item
+        if (wasExpanded) {
+          item.classList.remove("is-expanded");
+          detailsDiv.style.display = "none";
+          if (state.detailChartInstance) {
+            state.detailChartInstance.destroy();
+            state.detailChartInstance = null;
+          }
+        } else {
+          item.classList.add("is-expanded");
+          detailsDiv.style.display = "block";
+          
+          // Re-render chart on next tick when canvas has bounds
+          setTimeout(() => {
+            buildDetailExerciseChart(detailCanvas, logs, latest.type);
+          }, 50);
+        }
+      });
 
       container.appendChild(item);
 
@@ -1007,7 +1194,7 @@ function handleExerciseChange() {
     typeSelect.value = currentMeta.type;
   }
 
-  updateLoggingInterface(currentMeta.type);
+  updateLoggingInterface(currentMeta.type, true);
 }
 
 function updateLoggingInterface(type, forceRebuildSets = false) {
@@ -1254,22 +1441,21 @@ function appendSetRow(type, values = {}, setNum, isTimedExercise = false) {
     return wrapper;
   }
 
-  // Set counter badge
+  // Set counter badge (Check-off log button)
   const numDiv = document.createElement("div");
   numDiv.style.flex = "0 0 45px";
   const numLabel = document.createElement("label");
-  numLabel.textContent = "Set";
-  const numInput = document.createElement("input");
-  numInput.type = "text";
-  numInput.value = `#${setNum}`;
-  numInput.disabled = true;
-  numInput.style.textAlign = "center";
-  numInput.style.fontWeight = "700";
-  numInput.style.color = "var(--accent)";
-  numInput.style.background = "rgba(255, 140, 26, 0.05)";
-  numInput.style.borderColor = "rgba(255, 140, 26, 0.15)";
+  numLabel.textContent = "Log";
+  const checkBtn = document.createElement("button");
+  checkBtn.type = "button";
+  checkBtn.className = "set-check-btn";
+  checkBtn.textContent = `${setNum}`;
+  checkBtn.dataset.setNum = setNum;
+  checkBtn.addEventListener("click", () => {
+    toggleSetComplete(row, checkBtn);
+  });
   numDiv.appendChild(numLabel);
-  numDiv.appendChild(numInput);
+  numDiv.appendChild(checkBtn);
   row.appendChild(numDiv);
 
   if (type === "cardio") {
@@ -1367,12 +1553,30 @@ function appendSetRow(type, values = {}, setNum, isTimedExercise = false) {
 function reindexSets() {
   const rows = document.querySelectorAll("#setsList .set-row");
   rows.forEach((row, i) => {
-    const numInput = row.querySelector("input[disabled]");
-    if (numInput) {
-      numInput.value = `#${i + 1}`;
+    const checkBtn = row.querySelector(".set-check-btn");
+    const newNum = i + 1;
+    if (checkBtn) {
+      checkBtn.dataset.setNum = newNum;
+      if (!checkBtn.classList.contains("is-complete")) {
+        checkBtn.textContent = newNum;
+      }
     }
-    row.dataset.setNum = i + 1;
+    row.dataset.setNum = newNum;
   });
+}
+
+function toggleSetComplete(row, btn) {
+  const isComplete = btn.classList.toggle("is-complete");
+  if (isComplete) {
+    btn.innerHTML = "✓";
+    triggerHaptic([15, 30]); // tactile check-off rumble
+    row.classList.add("set-row-complete");
+    startRestTimer(60); // 1-minute timer!
+  } else {
+    btn.textContent = btn.dataset.setNum;
+    triggerHaptic(5);
+    row.classList.remove("set-row-complete");
+  }
 }
 
 function addSet() {
@@ -1518,17 +1722,6 @@ function refreshExerciseStats() {
       const topSet = latestLog.sets.sort((a,b) => b.weight - a.weight)[0];
       const nextTargetWeight = topSet.weight + (state.unit === "kg" ? 2.5 : 5);
       suggestionSummary.textContent = `🎯 Suggested overloading: Try ${nextTargetWeight}${state.unit} for ${Math.max(5, topSet.reps - 2)} reps!`;
-    }
-  }
-
-  // Render analytics trends graph
-  const chartCard = document.getElementById("cardChart");
-  if (chartCard) {
-    if (!state.focusMode) {
-      chartCard.style.display = "block";
-      buildProgressChart(logs, type);
-    } else {
-      chartCard.style.display = "none";
     }
   }
 
@@ -1684,13 +1877,12 @@ function deleteSessionEntry(dateStr, exerciseName) {
   updateMuscleLastTrainedUI();
 }
 
-// Progressive Overload Chart Render
-function buildProgressChart(logs, type) {
-  const canvas = document.getElementById("progressChart");
+// Progressive Overload Chart Render (Detailed Chart on Expanded Cards)
+function buildDetailExerciseChart(canvas, logs, type) {
   if (!canvas) return;
 
-  if (state.chartInstance) {
-    state.chartInstance.destroy();
+  if (state.detailChartInstance) {
+    state.detailChartInstance.destroy();
   }
 
   const ctx = canvas.getContext("2d");
@@ -1773,7 +1965,7 @@ function buildProgressChart(logs, type) {
     });
   } else {
     datasets.push({
-      label: "Top Weight (kg)",
+      label: `Top Weight (${state.unit || 'kg'})`,
       data: dataset1,
       borderColor: "#ff8c1a",
       backgroundColor: gradientOrange,
@@ -1785,7 +1977,7 @@ function buildProgressChart(logs, type) {
       pointHoverRadius: 6
     });
     datasets.push({
-      label: "Estimated 1RM (kg)",
+      label: `Estimated 1RM (${state.unit || 'kg'})`,
       data: dataset2,
       borderColor: "#00e5ff",
       backgroundColor: gradientTeal,
@@ -1798,7 +1990,7 @@ function buildProgressChart(logs, type) {
     });
   }
 
-  state.chartInstance = new Chart(ctx, {
+  state.detailChartInstance = new Chart(ctx, {
     type: "line",
     data: {
       labels: labels,
@@ -2787,7 +2979,7 @@ async function confirmResetAllData() {
 }
 
 // Import & Export JSON Logic
-function exportWorkoutData() {
+async function exportWorkoutData() {
   triggerHaptic(10);
   
   const payload = {
@@ -2796,21 +2988,47 @@ function exportWorkoutData() {
     exportedAt: new Date().toISOString(),
     headline: state.headline,
     mode: state.mode,
+    unit: state.unit,
     customExercises: state.customExercises,
     bodyweightEntries: state.bodyweightEntries,
     entries: state.entries
   };
 
-  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload));
+  const jsonString = JSON.stringify(payload, null, 2);
+  const cleanHeadline = (state.headline || "backup").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  const fileName = `adrenaline-data-${cleanHeadline}-${new Date().toISOString().split("T")[0]}.json`;
+
+  const blob = new Blob([jsonString], { type: "application/json" });
+
+  // 1. iOS / Mobile Web Share API file sharing (opens native Share Sheet to Save to Files, AirDrop, etc.)
+  try {
+    const file = new File([blob], fileName, { type: "application/json" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: "Adrenaline Forge Backup",
+        text: "Adrenaline Forge workout data backup JSON file."
+      });
+      return;
+    }
+  } catch (err) {
+    if (err.name === "AbortError") return; // User closed native share sheet
+    console.warn("Web Share API file export failed, falling back to Blob download:", err);
+  }
+
+  // 2. Standard Blob ObjectURL Download fallback for Desktop / Android
+  const blobUrl = URL.createObjectURL(blob);
   const downloadAnchor = document.createElement("a");
-  downloadAnchor.setAttribute("href", dataStr);
-  
-  const cleanHeadline = state.headline.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-  downloadAnchor.setAttribute("download", `adrenaline-data-${cleanHeadline}-${new Date().toISOString().split("T")[0]}.json`);
+  downloadAnchor.href = blobUrl;
+  downloadAnchor.download = fileName;
   
   document.body.appendChild(downloadAnchor);
   downloadAnchor.click();
-  downloadAnchor.remove();
+  
+  setTimeout(() => {
+    downloadAnchor.remove();
+    URL.revokeObjectURL(blobUrl);
+  }, 1000);
 }
 
 function triggerImportFileInput() {
@@ -3554,8 +3772,54 @@ function initIosInstallBanner() {
   }
 }
 
+function performAutoUpdateCheck() {
+  const now = new Date();
+  
+  // Define scheduled update time: Sunday at 3:00 AM local time
+  const getMostRecentSunday3AM = (date) => {
+    const d = new Date(date);
+    const day = d.getDay();
+    d.setDate(d.getDate() - day);
+    d.setHours(3, 0, 0, 0);
+    if (date < d) {
+      d.setDate(d.getDate() - 7);
+    }
+    return d.getTime();
+  };
+
+  const lastUpdate = Number(localStorage.getItem("adrenaline-last-auto-update")) || 0;
+  const targetTime = getMostRecentSunday3AM(now);
+
+  if (lastUpdate < targetTime) {
+    console.log("[Auto-Update] Scheduled weekly upgrade cycle triggered. Upgrading shell...");
+    localStorage.setItem("adrenaline-last-auto-update", now.getTime());
+    
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        for (let registration of registrations) {
+          registration.unregister();
+        }
+      });
+    }
+    if ("caches" in window) {
+      caches.keys().then(names => {
+        for (let name of names) {
+          caches.delete(name);
+        }
+      });
+    }
+    setTimeout(() => {
+      window.location.reload(true);
+    }, 500);
+  }
+}
+
 // DOM Setup Binder
 document.addEventListener("DOMContentLoaded", async () => {
+  // Check weekly auto-update cycle
+  performAutoUpdateCheck();
+  setInterval(performAutoUpdateCheck, 3600000); // Check once an hour if app remains open
+
   // Load data & set up tabs
   await loadAllData();
   initApp();
@@ -3672,6 +3936,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("btnCopyLastSets")?.addEventListener("click", copyLastWorkoutSets);
   document.getElementById("btnFocusMode")?.addEventListener("click", toggleFocusMode);
 
+  // Rest Timer Binders
+  document.getElementById("btnTimerPlus30")?.addEventListener("click", () => {
+    triggerHaptic(5);
+    restTimeRemaining = Math.min(300, restTimeRemaining + 30);
+    restTimeTotal = Math.max(restTimeTotal, restTimeRemaining);
+    updateTimerUI();
+    playSynthBeep(660, 0.08); // High pitch feedback for adding time
+  });
+
+  document.getElementById("btnTimerSkip")?.addEventListener("click", () => {
+    triggerHaptic(10);
+    hideRestTimer();
+  });
+
   // Custom Exercises
   document.getElementById("btnAddExercise")?.addEventListener("click", showAddExerciseUI);
   document.getElementById("btnConfirmAddExercise")?.addEventListener("click", confirmAddExercise);
@@ -3781,29 +4059,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // Force Update / Reload cache binder
-  document.getElementById("btnForceReload")?.addEventListener("click", () => {
-    if (confirm("Force updating will clear the PWA cache and reload to fetch the latest cyberpunk upgrades directly from the network. Proceed?")) {
-      triggerHaptic([30, 30, 30]);
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.getRegistrations().then(registrations => {
-          for (let registration of registrations) {
-            registration.unregister();
-          }
-        });
-      }
-      if ("caches" in window) {
-        caches.keys().then(names => {
-          for (let name of names) {
-            caches.delete(name);
-          }
-        });
-      }
-      setTimeout(() => {
-        window.location.reload(true);
-      }, 500);
-    }
-  });
+  // Weekly auto-update is handled automatically on Sundays at 3:00 AM
 
   // Conquest Achievements click binders to show goals
   document.getElementById("badgeStreak")?.addEventListener("click", () => showAchievementTarget("streak"));
