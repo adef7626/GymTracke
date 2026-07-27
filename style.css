@@ -3647,35 +3647,12 @@ input[type="checkbox"]:checked + .ios-switch-label .ios-switch-inner {
   opacity: 0.3;
 }
 
-/* Accordion Arrow */
-.expand-arrow {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  margin-left: 8px;
-}
-
-.overview-item.is-expanded .expand-arrow {
-  transform: rotate(180deg);
-  color: var(--accent);
-}
-
-/* Detailed expanded section */
+/* Detailed trend section on exercise cards */
 .overview-details {
-  display: none;
-  margin-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  padding-top: 16px;
-  animation: slideDownFade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.overview-item.is-expanded .overview-details {
   display: block;
-}
-
-@keyframes slideDownFade {
-  0% { opacity: 0; transform: translateY(-6px); }
-  100% { opacity: 1; transform: translateY(0); }
+  margin-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 14px;
 }
 
 /* Detail Chart Canvas container */

@@ -839,11 +839,13 @@ function initRecapView() {
 
   container.innerHTML = "";
 
-  // Destroy active detail chart on entry
-  if (state.detailChartInstance) {
-    state.detailChartInstance.destroy();
-    state.detailChartInstance = null;
+  // Destroy existing chart instances to prevent memory leaks
+  if (state.detailChartInstances && state.detailChartInstances.length > 0) {
+    state.detailChartInstances.forEach(c => {
+      if (c) c.destroy();
+    });
   }
+  state.detailChartInstances = [];
 
   // Find all exercises logged for this muscle
   const allLogs = state.entries.filter(e => e.muscle === state.selectedMuscle && e.exercise !== "__muscle_complete__");
@@ -855,32 +857,20 @@ function initRecapView() {
         ⚔️ No workouts logged on this battlefield yet. Let's start attacking!
       </div>`;
   } else {
-    // Show cards for each logged exercise showing short recap and expandable detailed chart
+    // Show cards for each logged exercise showing short recap and always-visible overload chart
     uniqueLoggedNames.forEach(name => {
       const logs = allLogs.filter(l => normalizeName(l.exercise) === normalizeName(name));
       const latest = logs[logs.length - 1];
 
       const item = document.createElement("div");
       item.className = "overview-item";
-      item.style.cursor = "pointer";
 
       const header = document.createElement("div");
       header.className = "overview-header";
 
-      const titleGroup = document.createElement("div");
-      titleGroup.style.display = "flex";
-      titleGroup.style.alignItems = "center";
-
       const title = document.createElement("span");
       title.className = "overview-title";
       title.textContent = name;
-
-      const arrow = document.createElement("span");
-      arrow.className = "expand-arrow";
-      arrow.textContent = "▼";
-
-      titleGroup.appendChild(title);
-      titleGroup.appendChild(arrow);
 
       const logBtn = document.createElement("button");
       logBtn.className = "btn btn-cyan btn-sm btn-rect";
@@ -890,19 +880,17 @@ function initRecapView() {
         initWorkoutLoggingView(name);
       });
 
-      header.appendChild(titleGroup);
+      header.appendChild(title);
       header.appendChild(logBtn);
 
       const meta = document.createElement("div");
       meta.className = "overview-meta";
       meta.textContent = `Sessions: ${logs.length} • Last: ${formatDate(latest.date)}`;
 
-      // Detailed expanded section (hidden by default)
+      // Detailed trend section (always visible)
       const detailsDiv = document.createElement("div");
       detailsDiv.className = "overview-details";
-      detailsDiv.addEventListener("click", (e) => {
-        e.stopPropagation(); // prevent collapsing when clicking inside details panel
-      });
+      detailsDiv.style.display = "block";
 
       const chartTitle = document.createElement("div");
       chartTitle.style.fontSize = "0.72rem";
@@ -940,39 +928,12 @@ function initRecapView() {
       item.appendChild(meta);
       item.appendChild(detailsDiv);
 
-      // Collapsible toggle logic
-      item.addEventListener("click", () => {
-        const wasExpanded = item.classList.contains("is-expanded");
-        
-        // Collapse all other items
-        document.querySelectorAll("#overviewList .overview-item").forEach(otherItem => {
-          if (otherItem !== item) {
-            otherItem.classList.remove("is-expanded");
-            const dDiv = otherItem.querySelector(".overview-details");
-            if (dDiv) dDiv.style.display = "none";
-          }
-        });
-
-        // Toggle this item
-        if (wasExpanded) {
-          item.classList.remove("is-expanded");
-          detailsDiv.style.display = "none";
-          if (state.detailChartInstance) {
-            state.detailChartInstance.destroy();
-            state.detailChartInstance = null;
-          }
-        } else {
-          item.classList.add("is-expanded");
-          detailsDiv.style.display = "block";
-          
-          // Re-render chart on next tick when canvas has bounds
-          setTimeout(() => {
-            buildDetailExerciseChart(detailCanvas, logs, latest.type);
-          }, 50);
-        }
-      });
-
       container.appendChild(item);
+
+      // Render chart on next tick when canvas has layout dimensions
+      setTimeout(() => {
+        buildDetailExerciseChart(detailCanvas, logs, latest.type);
+      }, 0);
     });
   }
 
@@ -1867,7 +1828,7 @@ function buildDetailExerciseChart(canvas, logs, type) {
     });
   }
 
-  state.detailChartInstance = new Chart(ctx, {
+  const chart = new Chart(ctx, {
     type: "line",
     data: {
       labels: labels,
@@ -1908,6 +1869,9 @@ function buildDetailExerciseChart(canvas, logs, type) {
       }
     }
   });
+
+  if (!state.detailChartInstances) state.detailChartInstances = [];
+  state.detailChartInstances.push(chart);
 }
 
 // Helper to read standard select dropdowns and support Custom option text input values
