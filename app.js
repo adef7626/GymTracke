@@ -839,14 +839,6 @@ function initRecapView() {
 
   container.innerHTML = "";
 
-  // Destroy existing overview charts to prevent memory leaks
-  if (state.overviewCharts && state.overviewCharts.length > 0) {
-    state.overviewCharts.forEach(c => {
-      if (c) c.destroy();
-    });
-  }
-  state.overviewCharts = [];
-
   // Destroy active detail chart on entry
   if (state.detailChartInstance) {
     state.detailChartInstance.destroy();
@@ -863,7 +855,7 @@ function initRecapView() {
         ⚔️ No workouts logged on this battlefield yet. Let's start attacking!
       </div>`;
   } else {
-    // Show cards for each logged exercise showing short recap and line charts
+    // Show cards for each logged exercise showing short recap and expandable detailed chart
     uniqueLoggedNames.forEach(name => {
       const logs = allLogs.filter(l => normalizeName(l.exercise) === normalizeName(name));
       const latest = logs[logs.length - 1];
@@ -904,22 +896,6 @@ function initRecapView() {
       const meta = document.createElement("div");
       meta.className = "overview-meta";
       meta.textContent = `Sessions: ${logs.length} • Last: ${formatDate(latest.date)}`;
-
-      // Create overload chart container
-      const chartWrapper = document.createElement("div");
-      chartWrapper.className = "overview-chart-wrapper";
-      chartWrapper.style.height = "105px";
-      chartWrapper.style.marginTop = "8px";
-      chartWrapper.style.position = "relative";
-
-      const canvas = document.createElement("canvas");
-      canvas.className = "overview-chart-canvas";
-      canvas.style.width = "100%";
-      canvas.style.height = "100%";
-      canvas.addEventListener("click", (e) => {
-        e.stopPropagation(); // prevent navigation on chart taps to allow tooltips
-      });
-      chartWrapper.appendChild(canvas);
 
       // Detailed expanded section (hidden by default)
       const detailsDiv = document.createElement("div");
@@ -962,7 +938,6 @@ function initRecapView() {
 
       item.appendChild(header);
       item.appendChild(meta);
-      item.appendChild(chartWrapper);
       item.appendChild(detailsDiv);
 
       // Collapsible toggle logic
@@ -998,108 +973,10 @@ function initRecapView() {
       });
 
       container.appendChild(item);
-
-      // Initialize the overload chart on next tick
-      setTimeout(() => {
-        buildOverviewExerciseChart(canvas, logs, latest.type);
-      }, 0);
     });
   }
 
   switchView("view-overview");
-}
-
-function buildOverviewExerciseChart(canvas, logs, type) {
-  const ctx = canvas.getContext("2d");
-
-  // Keep latest 5 sessions to keep overview graphs clear
-  const subset = logs.slice(-5);
-
-  const labels = subset.map(l => {
-    const d = new Date(l.date);
-    return `${d.getMonth() + 1}/${d.getDate()}`;
-  });
-
-  const dataset1 = [];
-  subset.forEach(log => {
-    if (type === "cardio") {
-      const totalDist = log.sets.reduce((sum, s) => sum + (s.distance || 0), 0);
-      dataset1.push(totalDist);
-    } else if (type === "bodyweight") {
-      const maxReps = Math.max(...log.sets.map(s => s.reps || 0));
-      dataset1.push(maxReps);
-    } else {
-      // Weighted: Top Weight from session
-      const maxWeight = Math.max(...log.sets.map(s => s.weight || 0));
-      dataset1.push(maxWeight);
-    }
-  });
-
-  // Colors based on cyberpunk neon theme
-  const borderCol = type === "cardio" ? "#ff8c1a" : (type === "bodyweight" ? "#a78bfa" : "#00e5ff");
-  const gradient = ctx.createLinearGradient(0, 0, 0, 80);
-  if (type === "cardio") {
-    gradient.addColorStop(0, "rgba(255, 140, 26, 0.3)");
-    gradient.addColorStop(1, "rgba(255, 140, 26, 0.0)");
-  } else if (type === "bodyweight") {
-    gradient.addColorStop(0, "rgba(167, 139, 250, 0.3)");
-    gradient.addColorStop(1, "rgba(167, 139, 250, 0.0)");
-  } else {
-    gradient.addColorStop(0, "rgba(0, 229, 255, 0.3)");
-    gradient.addColorStop(1, "rgba(0, 229, 255, 0.0)");
-  }
-
-  const labelName = type === "cardio" ? "Distance (km)" : (type === "bodyweight" ? "Max Reps" : "Top Weight");
-
-  const chart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: labels,
-      datasets: [{
-        label: labelName,
-        data: dataset1,
-        borderColor: borderCol,
-        backgroundColor: gradient,
-        borderWidth: 2,
-        fill: true,
-        tension: 0.3,
-        pointBackgroundColor: borderCol,
-        pointBorderColor: "#ffffff",
-        pointRadius: 3,
-        pointHoverRadius: 5
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: "rgba(10, 12, 34, 0.95)",
-          titleColor: "#ffffff",
-          bodyColor: "#f5f6fa",
-          borderColor: "rgba(255, 255, 255, 0.1)",
-          borderWidth: 1,
-          padding: 6,
-          cornerRadius: 6,
-          bodyFont: { family: "Inter", size: 10 }
-        }
-      },
-      scales: {
-        x: {
-          grid: { display: false },
-          ticks: { color: "#8d94c0", font: { size: 8 } }
-        },
-        y: {
-          grid: { color: "rgba(255, 255, 255, 0.03)" },
-          ticks: { color: "#8d94c0", font: { size: 8 } }
-        }
-      }
-    }
-  });
-
-  if (!state.overviewCharts) state.overviewCharts = [];
-  state.overviewCharts.push(chart);
 }
 
 function initWorkoutLoggingView(preselectedExerciseName = null) {
