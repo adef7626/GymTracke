@@ -1198,19 +1198,14 @@ function appendSetRow(type, values = {}, setNum, isTimedExercise = false) {
   row.className = "set-row";
   row.dataset.setNum = setNum;
 
-  // Helper to create a clean Stepper Control Box with [−] number [+]
+  // Helper to create a Stepper & Vertical Scroll Control Box with [ number ] [▲▼]
   function createScrollPicker(className, standardValues, currentValue, unit, step = 1) {
     const wrapper = document.createElement("div");
     wrapper.className = "set-scroll-group";
 
-    // Value Display Box with Stepper Controls
+    // Value Display Box with Stepper Controls & Vertical Scroll
     const controlBox = document.createElement("div");
     controlBox.className = "picker-control-box";
-
-    const btnMinus = document.createElement("button");
-    btnMinus.type = "button";
-    btnMinus.className = "picker-step-btn minus";
-    btnMinus.textContent = "−";
 
     const input = document.createElement("input");
     input.type = "number";
@@ -1223,33 +1218,98 @@ function appendSetRow(type, values = {}, setNum, isTimedExercise = false) {
       : (standardValues.length > 0 ? standardValues[0] : 0);
     input.value = initialVal;
 
-    const btnPlus = document.createElement("button");
-    btnPlus.type = "button";
-    btnPlus.className = "picker-step-btn plus";
-    btnPlus.textContent = "+";
+    // Dark-styled custom up/down spinner buttons
+    const spinnerWrap = document.createElement("div");
+    spinnerWrap.className = "dark-spin-wrap";
 
-    // Stepper handlers
-    btnMinus.addEventListener("click", (e) => {
-      e.stopPropagation();
+    const btnUp = document.createElement("button");
+    btnUp.type = "button";
+    btnUp.className = "dark-spin-btn spin-up";
+    btnUp.textContent = "▲";
+
+    const btnDown = document.createElement("button");
+    btnDown.type = "button";
+    btnDown.className = "dark-spin-btn spin-down";
+    btnDown.textContent = "▼";
+
+    spinnerWrap.appendChild(btnUp);
+    spinnerWrap.appendChild(btnDown);
+
+    const getStepVal = () => (unit === "kg" || className === "set-weight") ? (state.unit === "kg" ? 2.5 : 5) : step;
+
+    function doIncrement() {
       triggerHaptic(5);
       const curr = Number(input.value) || 0;
-      const stepVal = (unit === "kg" || className === "set-weight") ? (state.unit === "kg" ? 2.5 : 5) : step;
-      const newVal = Math.max(0, Math.round((curr - stepVal) * 10) / 10);
-      input.value = newVal;
-    });
-
-    btnPlus.addEventListener("click", (e) => {
-      e.stopPropagation();
-      triggerHaptic(5);
-      const curr = Number(input.value) || 0;
-      const stepVal = (unit === "kg" || className === "set-weight") ? (state.unit === "kg" ? 2.5 : 5) : step;
+      const stepVal = getStepVal();
       const newVal = Math.round((curr + stepVal) * 10) / 10;
       input.value = newVal;
+    }
+
+    function doDecrement() {
+      triggerHaptic(5);
+      const curr = Number(input.value) || 0;
+      const stepVal = getStepVal();
+      const newVal = Math.max(0, Math.round((curr - stepVal) * 10) / 10);
+      input.value = newVal;
+    }
+
+    // Button Click Listeners
+    btnUp.addEventListener("click", (e) => {
+      e.stopPropagation();
+      doIncrement();
     });
 
-    controlBox.appendChild(btnMinus);
+    btnDown.addEventListener("click", (e) => {
+      e.stopPropagation();
+      doDecrement();
+    });
+
+    // Touch Swipe Gesture for Vertical Drag Scrolling on Mobile
+    let startY = 0;
+    let accumulatedDelta = 0;
+
+    controlBox.addEventListener("touchstart", (e) => {
+      if (e.touches.length === 1) {
+        startY = e.touches[0].clientY;
+        accumulatedDelta = 0;
+      }
+    }, { passive: true });
+
+    controlBox.addEventListener("touchmove", (e) => {
+      if (e.touches.length === 1 && startY !== 0) {
+        const currentY = e.touches[0].clientY;
+        const delta = startY - currentY; // positive = swiping UP, negative = swiping DOWN
+        accumulatedDelta += delta;
+        startY = currentY;
+
+        const threshold = 12; // 12px vertical swipe distance per step tick
+        if (accumulatedDelta >= threshold) {
+          doIncrement();
+          accumulatedDelta = 0;
+        } else if (accumulatedDelta <= -threshold) {
+          doDecrement();
+          accumulatedDelta = 0;
+        }
+      }
+    }, { passive: true });
+
+    controlBox.addEventListener("touchend", () => {
+      startY = 0;
+      accumulatedDelta = 0;
+    });
+
+    // Mouse Wheel Scroll Listener for Desktop
+    controlBox.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      if (e.deltaY < 0) {
+        doIncrement();
+      } else if (e.deltaY > 0) {
+        doDecrement();
+      }
+    }, { passive: false });
+
     controlBox.appendChild(input);
-    controlBox.appendChild(btnPlus);
+    controlBox.appendChild(spinnerWrap);
 
     wrapper.appendChild(controlBox);
     return wrapper;

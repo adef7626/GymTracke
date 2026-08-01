@@ -72,7 +72,7 @@ body {
   display: flex;
   justify-content: center;
   overflow-x: hidden;
-  padding: calc(20px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
+  padding: calc(44px + env(safe-area-inset-top, 24px)) calc(12px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
   margin: 0;
 }
 
@@ -3685,36 +3685,12 @@ input[type="checkbox"]:checked + .ios-switch-label .ios-switch-inner {
 .picker-control-box {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-sm);
-  padding: 2px;
+  padding: 2px 6px;
   height: 38px;
-}
-
-.picker-step-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: var(--text-main);
-  font-size: 1.1rem;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: all 0.15s ease;
-  outline: none;
-}
-
-.picker-step-btn:active {
-  transform: scale(0.92);
-  background: var(--accent);
-  color: #ffffff;
 }
 
 .picker-value-input {
@@ -3741,6 +3717,51 @@ input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button {
   -webkit-appearance: none !important;
   margin: 0 !important;
+}
+
+/* Dark Custom Up/Down Spinner Buttons */
+.dark-spin-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 32px;
+  width: 22px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  margin-right: 2px;
+}
+
+.dark-spin-btn {
+  flex: 1;
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.55rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  outline: none;
+  line-height: 1;
+  padding: 0;
+}
+
+.dark-spin-btn:hover {
+  color: var(--accent);
+  background: rgba(255, 140, 26, 0.15);
+}
+
+.dark-spin-btn:active {
+  color: #ffffff;
+  background: var(--accent);
+}
+
+.dark-spin-btn.spin-up {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .set-row-complete .picker-control-box {
