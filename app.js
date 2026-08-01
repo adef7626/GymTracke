@@ -691,7 +691,6 @@ function switchView(viewId) {
   triggerHaptic(5);
   hideRestTimer(); // Cleanly cancel timer when switching views
 
-
   const currentViewId = navigationStack[navigationStack.length - 1];
   if (currentViewId === viewId) return;
 
@@ -712,57 +711,56 @@ function switchView(viewId) {
   const targetView = document.getElementById(viewId);
   if (!targetView) return;
 
-  // Freeze scroll using the body-position-fix technique:
-  // Setting body { position: fixed; top: -scrollY } locks the scroll engine completely
-  // on all browsers including iOS Safari, while the page visually stays in place.
-  // (overflow:hidden alone is NOT reliable on iOS Safari)
-  const scrollY = window.scrollY || window.pageYOffset;
-  // Measure scrollbar width BEFORE fixing body — when body is fixed the scrollbar
-  // disappears, causing a ~17px layout shift. Compensate with padding-right.
-  const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-  document.body.style.position = "fixed";
-  document.body.style.width = "100%";
-  document.body.style.top = `-${scrollY}px`;
-  document.body.style.overflowY = "hidden";
-  document.documentElement.style.overflowY = "hidden"; // lock html scroll too
-  document.documentElement.classList.add("no-scrollbars"); // lock scrollbars globally
-  if (scrollbarWidth > 0) {
-    document.body.style.paddingRight = scrollbarWidth + "px";
-  }
+  const scrollY = window.scrollY || window.pageYOffset || 0;
+  
+  // Lock scrollbars during transition animation
+  document.documentElement.classList.add("no-scrollbars");
 
-  // Clear all views
-  document.querySelectorAll(".view").forEach(v => {
-    v.classList.remove("active", "slide-push-enter", "slide-push-exit", "slide-pop-enter", "slide-pop-exit");
-    v.style.display = "none";
-  });
-
-  // Animate exit view out
+  // Freeze current view visually at its exact current scroll position
   if (currentView && currentViewId !== viewId) {
+    currentView.style.position = "absolute";
+    currentView.style.top = `-${scrollY}px`;
+    currentView.style.left = "0";
+    currentView.style.width = "100%";
     currentView.style.display = "block";
     currentView.classList.add(direction === "push" ? "slide-push-exit" : "slide-pop-exit");
-    setTimeout(() => {
-      currentView.style.display = "none";
-      currentView.classList.remove("slide-push-exit", "slide-pop-exit");
-    }, 450);
   }
 
-  // Animate new view in
+  // Instantly scroll window to top 0 BEFORE target view enters so top content is always visible
+  window.scrollTo(0, 0);
+
+  // Clear any other hidden views
+  document.querySelectorAll(".view").forEach(v => {
+    if (v !== currentView && v !== targetView) {
+      v.classList.remove("active", "slide-push-enter", "slide-push-exit", "slide-pop-enter", "slide-pop-exit");
+      v.style.display = "none";
+    }
+  });
+
+  // Prepare and animate target view entering cleanly from top 0
+  targetView.style.position = "relative";
+  targetView.style.top = "0";
   targetView.style.display = "block";
+  targetView.scrollTop = 0;
   targetView.classList.add("active", direction === "push" ? "slide-push-enter" : "slide-pop-enter");
 
-  // After animation: unfreeze body — scroll is already at 0 since it was locked,
-  // so scrollTo(0,0) causes no visible jump.
+  // Clean up inline positioning styles and transition classes after animation completes (420ms)
   setTimeout(() => {
+    if (currentView && currentViewId !== viewId) {
+      currentView.style.display = "none";
+      currentView.style.position = "";
+      currentView.style.top = "";
+      currentView.style.left = "";
+      currentView.style.width = "";
+      currentView.classList.remove("slide-push-exit", "slide-pop-exit");
+    }
+
     targetView.classList.remove("slide-push-enter", "slide-pop-enter");
-    document.body.style.position = "";
-    document.body.style.width = "";
-    document.body.style.top = "";
-    document.body.style.overflowY = "";
-    document.body.style.paddingRight = "";
-    document.documentElement.style.overflowY = ""; // restore html scroll
-    document.documentElement.classList.remove("no-scrollbars"); // restore scrollbars globally
+    targetView.style.position = "";
+    targetView.style.top = "";
+    document.documentElement.classList.remove("no-scrollbars");
     window.scrollTo(0, 0);
-  }, 450);
+  }, 420);
 }
 
 

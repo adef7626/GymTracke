@@ -53,7 +53,7 @@
 }
 
 html {
-  background-color: var(--bg);
+  background-color: #090a11;
   background: var(--bg-gradient);
   background-attachment: fixed;
   min-height: 100%;
@@ -65,6 +65,7 @@ html {
 body {
   min-height: 100vh;
   min-height: -webkit-fill-available;
+  background-color: #090a11;
   background: var(--bg-gradient);
   background-attachment: fixed;
   color: var(--text-main);
