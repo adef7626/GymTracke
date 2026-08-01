@@ -4,7 +4,7 @@
  * ==========================================================================
  */
 
-const CACHE_NAME = "adrenaline-cache-v62";
+const CACHE_NAME = "adrenaline-cache-v63";
 
 const ASSETS_TO_CACHE = [
   "./",
