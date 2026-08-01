@@ -104,8 +104,8 @@ const MUSCLES = [
   "Legs"
 ];
 
-const STANDARD_WEIGHTS = [2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90, 100];
-const STANDARD_REPS = [5, 10, 12, 15, 19, 20, 25, 30];
+const STANDARD_WEIGHTS = [0, 2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25, 27.5, 30, 32.5, 35, 37.5, 40, 45, 50, 55, 60, 65, 70, 75, 80, 90, 100, 110, 120, 130, 140, 150];
+const STANDARD_REPS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 18, 20, 25, 30];
 
 const DEFAULT_EXERCISES = {
   "Chest": [
@@ -1198,68 +1198,60 @@ function appendSetRow(type, values = {}, setNum, isTimedExercise = false) {
   row.className = "set-row";
   row.dataset.setNum = setNum;
 
-
-
-  // Helper to create a select dropdown with standard values + Custom option
-  function createStandardSelect(className, standardValues, currentValue, unit) {
+  // Helper to create a clean Stepper Control Box with [−] number [+]
+  function createScrollPicker(className, standardValues, currentValue, unit, step = 1) {
     const wrapper = document.createElement("div");
-    wrapper.className = "set-select-group";
+    wrapper.className = "set-scroll-group";
 
-    const select = document.createElement("select");
-    select.className = className;
+    // Value Display Box with Stepper Controls
+    const controlBox = document.createElement("div");
+    controlBox.className = "picker-control-box";
 
-    // Add standard value options
-    standardValues.forEach(v => {
-      const opt = document.createElement("option");
-      opt.value = v;
-      opt.textContent = `${v}`;
-      select.appendChild(opt);
+    const btnMinus = document.createElement("button");
+    btnMinus.type = "button";
+    btnMinus.className = "picker-step-btn minus";
+    btnMinus.textContent = "−";
+
+    const input = document.createElement("input");
+    input.type = "number";
+    input.className = `picker-value-input ${className}`;
+    input.step = (unit === "kg" || className === "set-weight") ? (state.unit === "kg" ? "2.5" : "5") : "1";
+    input.min = "0";
+
+    const initialVal = (currentValue !== undefined && currentValue !== null && currentValue !== "")
+      ? Number(currentValue)
+      : (standardValues.length > 0 ? standardValues[0] : 0);
+    input.value = initialVal;
+
+    const btnPlus = document.createElement("button");
+    btnPlus.type = "button";
+    btnPlus.className = "picker-step-btn plus";
+    btnPlus.textContent = "+";
+
+    // Stepper handlers
+    btnMinus.addEventListener("click", (e) => {
+      e.stopPropagation();
+      triggerHaptic(5);
+      const curr = Number(input.value) || 0;
+      const stepVal = (unit === "kg" || className === "set-weight") ? (state.unit === "kg" ? 2.5 : 5) : step;
+      const newVal = Math.max(0, Math.round((curr - stepVal) * 10) / 10);
+      input.value = newVal;
     });
 
-    // Add Custom option
-    const customOpt = document.createElement("option");
-    customOpt.value = "__custom__";
-    customOpt.textContent = "Custom";
-    select.appendChild(customOpt);
-
-    // Custom input (hidden by default)
-    const customWrap = document.createElement("div");
-    customWrap.className = "custom-input-wrap";
-    const customInput = document.createElement("input");
-    customInput.type = "number";
-    customInput.className = `${className}-custom`;
-    customInput.step = unit === "kg" ? "0.5" : "1";
-    customInput.min = "0";
-    customInput.placeholder = `Custom ${unit || ""}`;
-    customWrap.appendChild(customInput);
-
-    // Set value — check if it matches a standard value
-    if (currentValue !== undefined && currentValue !== "" && currentValue !== 0) {
-      const numVal = Number(currentValue);
-      if (standardValues.includes(numVal)) {
-        select.value = numVal;
-      } else {
-        select.value = "__custom__";
-        customWrap.classList.add("active");
-        customInput.value = numVal;
-      }
-    } else {
-      select.selectedIndex = 0;
-    }
-
-    // Toggle custom input visibility
-    select.addEventListener("change", () => {
-      if (select.value === "__custom__") {
-        customWrap.classList.add("active");
-        customInput.focus();
-      } else {
-        customWrap.classList.remove("active");
-        customInput.value = "";
-      }
+    btnPlus.addEventListener("click", (e) => {
+      e.stopPropagation();
+      triggerHaptic(5);
+      const curr = Number(input.value) || 0;
+      const stepVal = (unit === "kg" || className === "set-weight") ? (state.unit === "kg" ? 2.5 : 5) : step;
+      const newVal = Math.round((curr + stepVal) * 10) / 10;
+      input.value = newVal;
     });
 
-    wrapper.appendChild(select);
-    wrapper.appendChild(customWrap);
+    controlBox.appendChild(btnMinus);
+    controlBox.appendChild(input);
+    controlBox.appendChild(btnPlus);
+
+    wrapper.appendChild(controlBox);
     return wrapper;
   }
 
@@ -1283,6 +1275,8 @@ function appendSetRow(type, values = {}, setNum, isTimedExercise = false) {
   if (type === "cardio") {
     // Distance Input
     const distDiv = document.createElement("div");
+    distDiv.style.flex = "1";
+    distDiv.style.minWidth = "0";
     const distLabel = document.createElement("label");
     distLabel.textContent = "Dist (km)";
     const distInput = document.createElement("input");
@@ -1298,6 +1292,8 @@ function appendSetRow(type, values = {}, setNum, isTimedExercise = false) {
 
     // Time Input
     const timeDiv = document.createElement("div");
+    timeDiv.style.flex = "1";
+    timeDiv.style.minWidth = "0";
     const timeLabel = document.createElement("label");
     timeLabel.textContent = "Time (min)";
     const timeInput = document.createElement("input");
@@ -1314,6 +1310,8 @@ function appendSetRow(type, values = {}, setNum, isTimedExercise = false) {
     if (isTimedExercise) {
       // Time (seconds) input for plank-style exercises
       const timeDiv = document.createElement("div");
+      timeDiv.style.flex = "1";
+      timeDiv.style.minWidth = "0";
       const timeLabel = document.createElement("label");
       timeLabel.textContent = "Time (sec)";
       const timeInput = document.createElement("input");
@@ -1328,32 +1326,38 @@ function appendSetRow(type, values = {}, setNum, isTimedExercise = false) {
       timeDiv.appendChild(timeInput);
       row.appendChild(timeDiv);
     } else {
-      // Reps Dropdown
+      // Reps Touch-Scroll Picker
       const repsDiv = document.createElement("div");
+      repsDiv.style.flex = "1";
+      repsDiv.style.minWidth = "0";
       const repsLabel = document.createElement("label");
       repsLabel.textContent = "Reps";
-      const repsSelect = createStandardSelect("set-reps", STANDARD_REPS, values.reps, "reps");
+      const repsPicker = createScrollPicker("set-reps", STANDARD_REPS, values.reps, "reps", 1);
       repsDiv.appendChild(repsLabel);
-      repsDiv.appendChild(repsSelect);
+      repsDiv.appendChild(repsPicker);
       row.appendChild(repsDiv);
     }
   } else {
-    // Weighted — Weight Dropdown
+    // Weighted — Weight Touch-Scroll Picker
     const wDiv = document.createElement("div");
+    wDiv.style.flex = "1";
+    wDiv.style.minWidth = "0";
     const wLabel = document.createElement("label");
     wLabel.textContent = `Weight (${state.unit})`;
-    const weightSelect = createStandardSelect("set-weight", STANDARD_WEIGHTS, values.weight, state.unit);
+    const weightPicker = createScrollPicker("set-weight", STANDARD_WEIGHTS, values.weight, state.unit, 2.5);
     wDiv.appendChild(wLabel);
-    wDiv.appendChild(weightSelect);
+    wDiv.appendChild(weightPicker);
     row.appendChild(wDiv);
 
-    // Reps Dropdown
+    // Reps Touch-Scroll Picker
     const repsDiv = document.createElement("div");
+    repsDiv.style.flex = "1";
+    repsDiv.style.minWidth = "0";
     const repsLabel = document.createElement("label");
     repsLabel.textContent = "Reps";
-    const repsSelect = createStandardSelect("set-reps", STANDARD_REPS, values.reps, "reps");
+    const repsPicker = createScrollPicker("set-reps", STANDARD_REPS, values.reps, "reps", 1);
     repsDiv.appendChild(repsLabel);
-    repsDiv.appendChild(repsSelect);
+    repsDiv.appendChild(repsPicker);
     row.appendChild(repsDiv);
   }
 
@@ -1858,8 +1862,12 @@ function buildDetailExerciseChart(canvas, logs, type) {
   state.detailChartInstances.push(chart);
 }
 
-// Helper to read standard select dropdowns and support Custom option text input values
+// Helper to read values from Touch Scroll Pickers or standard select dropdowns
 function readSetSelectValue(row, className) {
+  const input = row.querySelector(`input.${className}`);
+  if (input) {
+    return Number(input.value) || 0;
+  }
   const select = row.querySelector(`select.${className}`);
   if (!select) return 0;
   if (select.value === "__custom__") {

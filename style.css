@@ -3672,6 +3672,82 @@ input[type="checkbox"]:checked + .ios-switch-label .ios-switch-inner {
   box-shadow: 0 8px 24px rgba(0, 229, 255, 0.15);
 }
 
+/* ==========================================================================
+   INTERACTIVE TOUCH-SCROLL PICKER FOR WEIGHT & REPS
+   ========================================================================== */
+.set-scroll-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.picker-control-box {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  height: 38px;
+}
+
+.picker-step-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  outline: none;
+}
+
+.picker-step-btn:active {
+  transform: scale(0.92);
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.picker-value-input {
+  flex: 1;
+  width: 100%;
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--accent);
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  margin-bottom: 0 !important;
+  min-height: 30px !important;
+  padding: 0 !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
+}
+
+/* Hide native browser number input spinner arrows */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+
+.set-row-complete .picker-control-box {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
 
 
 
