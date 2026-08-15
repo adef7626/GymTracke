@@ -1482,6 +1482,9 @@ function appendSetRow(type, values = {}, setNum, isTimedExercise = false) {
   });
   row.appendChild(delBtn);
 
+  // Bind iOS Swipe Set Row Gestures
+  initSetRowSwipeActions(row);
+
   container.appendChild(row);
 }
 
@@ -1505,6 +1508,7 @@ function toggleSetComplete(row, btn) {
   if (isComplete) {
     btn.innerHTML = "✓";
     triggerHaptic([15, 30]); // tactile check-off rumble
+    triggerSetCheckoffBurst(btn); // Spark particle explosion!
     row.classList.add("set-row-complete");
     startRestTimer(60); // 1-minute timer!
   } else {
@@ -2139,6 +2143,9 @@ function saveWorkoutEntry() {
   state.entries.sort((a, b) => new Date(a.date) - new Date(b.date));
 
   saveAllData();
+
+  // Trigger Victory Blast Celebration Modal & Count-Up Stats!
+  triggerWorkoutVictoryBlast(newEntry);
   
   // Show standard visual success banner animation on saving
   const btnSave = document.getElementById("btnSaveWorkout");
@@ -3666,6 +3673,12 @@ function renderExerciseManagerList(filterText = "") {
 function initApp() {
   renderMuscleTabs();
 
+  // Initialize Native iOS Gestures & Micro-Animations
+  initSwipeBackGesture();
+  initPullToRefresh();
+  init3DCardTilt();
+  initLongPressMuscleCards();
+
   // Global document click listener to collapse active wheel boxes
   document.addEventListener("click", () => {
     document.querySelectorAll(".inline-wheel-box.is-active").forEach(box => {
@@ -4635,5 +4648,328 @@ function stopSynthwaveBeats() {
   if (btn) {
     btn.innerHTML = "🔇 OFF";
     btn.className = "btn btn-secondary btn-sm";
+  }
+}
+
+/* ==========================================================================
+   NATIVE iOS GESTURES & KINETIC MICRO-ANIMATION ENGINE
+   ========================================================================== */
+
+// 1. Spark particle burst on set check-off
+function triggerSetCheckoffBurst(btn) {
+  const rect = btn.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+
+  for (let i = 0; i < 8; i++) {
+    const spark = document.createElement("div");
+    spark.className = "spark-particle";
+    
+    const angle = (i / 8) * Math.PI * 2;
+    const distance = 25 + Math.random() * 20;
+    const tx = Math.cos(angle) * distance;
+    const ty = Math.sin(angle) * distance;
+
+    spark.style.left = `${centerX}px`;
+    spark.style.top = `${centerY}px`;
+    spark.style.setProperty("--tx", `${tx}px`);
+    spark.style.setProperty("--ty", `${ty}px`);
+
+    document.body.appendChild(spark);
+    setTimeout(() => spark.remove(), 600);
+  }
+}
+
+// 2. Workout Victory Blast celebration modal
+function triggerWorkoutVictoryBlast(entry) {
+  triggerHaptic([30, 50, 30]);
+
+  const modal = document.getElementById("victoryModal");
+  const exTitle = document.getElementById("victoryExerciseTitle");
+  const volEl = document.getElementById("victoryTotalVol");
+  const top1RMEl = document.getElementById("victoryTop1RM");
+  const setsEl = document.getElementById("victorySetsCompleted");
+
+  if (!modal || !volEl || !top1RMEl || !setsEl) return;
+
+  if (exTitle) exTitle.textContent = entry.exercise;
+
+  modal.style.display = "flex";
+
+  const targetVol = entry.totalVolume || 0;
+  const target1RM = entry.best1RM || 0;
+  const targetSets = (entry.sets || []).length;
+
+  let currentVol = 0;
+  let current1RM = 0;
+  let currentSets = 0;
+  const steps = 20;
+  let stepCount = 0;
+
+  const timer = setInterval(() => {
+    stepCount++;
+    currentVol = Math.round((targetVol / steps) * stepCount);
+    current1RM = Math.round(((target1RM / steps) * stepCount) * 10) / 10;
+    currentSets = Math.min(targetSets, Math.round((targetSets / steps) * stepCount));
+
+    volEl.textContent = `${currentVol}`;
+    top1RMEl.textContent = `${current1RM} ${state.unit}`;
+    setsEl.textContent = `${currentSets}`;
+
+    if (stepCount >= steps) {
+      clearInterval(timer);
+      volEl.textContent = `${targetVol}`;
+      top1RMEl.textContent = `${target1RM} ${state.unit}`;
+      setsEl.textContent = `${targetSets}`;
+    }
+  }, 25);
+
+  const btnClose = document.getElementById("btnCloseVictory");
+  if (btnClose) {
+    btnClose.onclick = () => {
+      modal.style.display = "none";
+    };
+  }
+}
+
+// 3. Set Row Swipe Actions (Swipe left to delete, right to complete)
+function initSetRowSwipeActions(row) {
+  let startX = 0;
+  let currentX = 0;
+  let isSwiping = false;
+
+  row.addEventListener("touchstart", (e) => {
+    if (e.touches.length === 1) {
+      startX = e.touches[0].clientX;
+      isSwiping = true;
+    }
+  }, { passive: true });
+
+  row.addEventListener("touchmove", (e) => {
+    if (!isSwiping || e.touches.length !== 1) return;
+    currentX = e.touches[0].clientX;
+    const deltaX = currentX - startX;
+
+    if (Math.abs(deltaX) > 20) {
+      row.style.transform = `translateX(${deltaX * 0.6}px)`;
+      row.style.transition = "none";
+    }
+  }, { passive: true });
+
+  row.addEventListener("touchend", () => {
+    if (!isSwiping) return;
+    isSwiping = false;
+    const deltaX = currentX - startX;
+    row.style.transition = "transform 0.25s ease-out";
+
+    if (deltaX < -70) {
+      // Swipe Left -> Delete set row
+      triggerHaptic(12);
+      row.style.transform = "translateX(-100%)";
+      setTimeout(() => {
+        row.remove();
+        reindexSets();
+      }, 250);
+    } else if (deltaX > 70) {
+      // Swipe Right -> Check-off completed set
+      row.style.transform = "translateX(0)";
+      const checkBtn = row.querySelector(".set-check-btn");
+      if (checkBtn) {
+        toggleSetComplete(row, checkBtn);
+      }
+    } else {
+      row.style.transform = "translateX(0)";
+    }
+    startX = 0;
+    currentX = 0;
+  });
+}
+
+// 4. iOS-Style Edge Swipe-Back Gesture
+function initSwipeBackGesture() {
+  let startX = 0;
+  let currentX = 0;
+  let isEdgeSwipe = false;
+
+  document.addEventListener("touchstart", (e) => {
+    if (e.touches.length === 1) {
+      const x = e.touches[0].clientX;
+      if (x < 35 && navigationStack.length > 1) {
+        startX = x;
+        isEdgeSwipe = true;
+      }
+    }
+  }, { passive: true });
+
+  document.addEventListener("touchmove", (e) => {
+    if (!isEdgeSwipe || e.touches.length !== 1) return;
+    currentX = e.touches[0].clientX;
+    const deltaX = currentX - startX;
+
+    if (deltaX > 0) {
+      const activeView = document.querySelector(".view.active");
+      if (activeView) {
+        activeView.style.transform = `translateX(${deltaX * 0.8}px)`;
+        activeView.style.opacity = `${1 - deltaX / 400}`;
+      }
+    }
+  }, { passive: true });
+
+  document.addEventListener("touchend", () => {
+    if (!isEdgeSwipe) return;
+    isEdgeSwipe = false;
+    const deltaX = currentX - startX;
+    const activeView = document.querySelector(".view.active");
+
+    if (activeView) {
+      activeView.style.transition = "transform 0.25s ease-out, opacity 0.25s ease-out";
+      if (deltaX > 90) {
+        triggerHaptic(8);
+        const prevViewId = navigationStack.length > 1 ? navigationStack[navigationStack.length - 2] : "view-muscles";
+        switchView(prevViewId);
+      }
+      setTimeout(() => {
+        if (activeView) {
+          activeView.style.transform = "";
+          activeView.style.opacity = "";
+          activeView.style.transition = "";
+        }
+      }, 260);
+    }
+    startX = 0;
+    currentX = 0;
+  });
+}
+
+// 5. Pull-To-Refresh Gesture
+function initPullToRefresh() {
+  let startY = 0;
+  let currentY = 0;
+  let isPulling = false;
+
+  document.addEventListener("touchstart", (e) => {
+    if (window.scrollY <= 5 && e.touches.length === 1) {
+      startY = e.touches[0].clientY;
+      isPulling = true;
+    }
+  }, { passive: true });
+
+  document.addEventListener("touchmove", (e) => {
+    if (!isPulling || window.scrollY > 5) return;
+    currentY = e.touches[0].clientY;
+    const deltaY = currentY - startY;
+
+    if (deltaY > 60) {
+      const spinner = document.getElementById("pullRefreshSpinner");
+      if (spinner) spinner.style.display = "flex";
+    }
+  }, { passive: true });
+
+  document.addEventListener("touchend", () => {
+    if (!isPulling) return;
+    isPulling = false;
+    const deltaY = currentY - startY;
+    const spinner = document.getElementById("pullRefreshSpinner");
+
+    if (deltaY > 70) {
+      triggerHaptic([10, 20]);
+      renderMuscleTabs();
+      updateMuscleLastTrainedUI();
+      setTimeout(() => {
+        if (spinner) spinner.style.display = "none";
+      }, 800);
+    } else {
+      if (spinner) spinner.style.display = "none";
+    }
+    startY = 0;
+    currentY = 0;
+  });
+}
+
+// 6. 3D Muscle Card Perspective Tilt
+function init3DCardTilt() {
+  document.addEventListener("mousemove", (e) => {
+    const card = e.target.closest(".muscle-card");
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
+
+    const rotX = (-y / rect.height) * 12;
+    const rotY = (x / rect.width) * 12;
+
+    card.style.transform = `perspective(600px) rotateX(${rotX}deg) rotateY(${rotY}deg) scale(1.02)`;
+  });
+
+  document.addEventListener("mouseout", (e) => {
+    const card = e.target.closest(".muscle-card");
+    if (card) {
+      card.style.transform = "perspective(600px) rotateX(0deg) rotateY(0deg) scale(1)";
+    }
+  });
+}
+
+// 7. Long-Press Muscle Quick Preview Sheet
+function initLongPressMuscleCards() {
+  let pressTimer = null;
+
+  document.addEventListener("touchstart", (e) => {
+    const card = e.target.closest(".muscle-card");
+    if (!card) return;
+    const muscle = card.dataset.muscle;
+    if (!muscle) return;
+
+    pressTimer = setTimeout(() => {
+      triggerHaptic(12);
+      openQuickPreviewSheet(muscle);
+    }, 500);
+  }, { passive: true });
+
+  document.addEventListener("touchend", () => {
+    if (pressTimer) clearTimeout(pressTimer);
+  });
+
+  document.addEventListener("touchmove", () => {
+    if (pressTimer) clearTimeout(pressTimer);
+  });
+}
+
+function openQuickPreviewSheet(muscle) {
+  const modal = document.getElementById("longPressModal");
+  const title = document.getElementById("previewMuscleTitle");
+  const best1RMEl = document.getElementById("previewBest1RM");
+  const logsEl = document.getElementById("previewTotalLogs");
+  const dateEl = document.getElementById("previewLastDate");
+
+  if (!modal) return;
+
+  const entries = state.entries.filter(e => e.muscle === muscle);
+  const muscleMeta = MUSCLES.find(m => m.name === muscle);
+  if (title) title.textContent = muscleMeta ? muscleMeta.label : muscle;
+
+  let max1RM = 0;
+  entries.forEach(e => {
+    if (e.best1RM > max1RM) max1RM = e.best1RM;
+  });
+
+  if (best1RMEl) best1RMEl.textContent = max1RM > 0 ? `${max1RM} ${state.unit}` : "-";
+  if (logsEl) logsEl.textContent = `${entries.length}`;
+  if (dateEl) dateEl.textContent = entries.length > 0 ? formatDate(entries[entries.length - 1].date) : "Never";
+
+  modal.style.display = "flex";
+
+  const btnStart = document.getElementById("btnQuickStartWorkout");
+  if (btnStart) {
+    btnStart.onclick = () => {
+      modal.style.display = "none";
+      onMuscleSelect(muscle);
+    };
+  }
+
+  const btnClose = document.getElementById("btnCloseQuickPreview");
+  if (btnClose) {
+    btnClose.onclick = () => {
+      modal.style.display = "none";
+    };
   }
 }

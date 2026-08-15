@@ -7,9 +7,12 @@
   <meta name="theme-color" content="#090a11" />
 
   <!-- PWA Capabilities & Favicon Icons -->
-  <link rel="icon" type="image/png" href="favicon.png" />
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" href="icons/icon-192.png?v=80" />
+  <link rel="shortcut icon" href="icons/icon-192.png?v=80" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png?v=80" />
+  <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png?v=80" />
+  <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png?v=80" />
+  <link rel="manifest" href="manifest.json?v=80" />
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Adrenaline Forge">
@@ -512,6 +515,60 @@
         <div class="setting-item danger-row">
           <button id="btnGoToReset" class="btn btn-danger btn-sm btn-rect" style="width:100%;">🧨 Factory Reset</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Pull To Refresh Spinner Indicator -->
+    <div id="pullRefreshSpinner" class="pull-refresh-indicator" style="display:none;">
+      <div class="pull-refresh-ring"></div>
+      <span>Refreshing Deck...</span>
+    </div>
+
+    <!-- Long Press Muscle Quick Preview Sheet -->
+    <div id="longPressModal" class="modal-backdrop" style="display:none;">
+      <div class="quick-preview-sheet">
+        <div class="quick-preview-header">
+          <span id="previewMuscleTitle" class="quick-preview-title">Chest</span>
+          <button id="btnCloseQuickPreview" class="modal-close-btn">&times;</button>
+        </div>
+        <div class="quick-preview-stats">
+          <div class="quick-stat-box">
+            <span class="quick-stat-label">Best 1RM</span>
+            <span id="previewBest1RM" class="quick-stat-val">0 kg</span>
+          </div>
+          <div class="quick-stat-box">
+            <span class="quick-stat-label">Total Logs</span>
+            <span id="previewTotalLogs" class="quick-stat-val">0</span>
+          </div>
+          <div class="quick-stat-box">
+            <span class="quick-stat-label">Last Session</span>
+            <span id="previewLastDate" class="quick-stat-val">Never</span>
+          </div>
+        </div>
+        <button id="btnQuickStartWorkout" class="btn btn-primary btn-rect" style="width:100%;margin-top:14px;">⚡ Start Workout Session</button>
+      </div>
+    </div>
+
+    <!-- Workout Victory Blast Celebration Modal -->
+    <div id="victoryModal" class="modal-backdrop" style="display:none;">
+      <div class="victory-card">
+        <div class="victory-badge">🏆 BATTLE VICTORIOUS 🚀</div>
+        <h2 id="victoryExerciseTitle" class="victory-title">Chest Bench Press</h2>
+        <div class="victory-stats-grid">
+          <div class="victory-stat-item">
+            <span class="victory-stat-num" id="victoryTotalVol">0</span>
+            <span class="victory-stat-lbl">Volume (kg)</span>
+          </div>
+          <div class="victory-stat-item">
+            <span class="victory-stat-num" id="victoryTop1RM">0</span>
+            <span class="victory-stat-lbl">Top 1RM</span>
+          </div>
+          <div class="victory-stat-item">
+            <span class="victory-stat-num" id="victorySetsCompleted">0</span>
+            <span class="victory-stat-lbl">Sets Completed</span>
+          </div>
+        </div>
+        <button id="btnCloseVictory" class="btn btn-primary btn-rect" style="width:100%;margin-top:16px;">🔥 Continue Training</button>
       </div>
     </div>
 

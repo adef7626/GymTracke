@@ -4,7 +4,7 @@
  * ==========================================================================
  */
 
-const CACHE_NAME = "adrenaline-cache-v79";
+const CACHE_NAME = "adrenaline-cache-v81";
 
 const ASSETS_TO_CACHE = [
   "./",
@@ -15,7 +15,9 @@ const ASSETS_TO_CACHE = [
   "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js",
   "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap",
   "./adrenaline-logo.png",
+  "./favicon.png",
   "./icons/logo.png",
+  "./icons/apple-touch-icon.png",
   "./icons/icon-192.png",
   "./icons/icon-512.png"
 ];
