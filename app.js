@@ -813,6 +813,24 @@ function renderMuscleTabs() {
     tab.appendChild(name);
     tab.appendChild(last);
 
+    let startX = 0;
+    tab.addEventListener("touchstart", (e) => {
+      if (e.touches.length === 1) startX = e.touches[0].clientX;
+    }, { passive: true });
+
+    tab.addEventListener("touchend", (e) => {
+      if (e.changedTouches.length === 1) {
+        const deltaX = e.changedTouches[0].clientX - startX;
+        if (deltaX > 35 || Math.abs(deltaX) < 8) { // Swipe right OR tap -> Navigate to Step 2
+          triggerHaptic(5);
+          state.selectedMuscle = m;
+          document.querySelectorAll(".muscle-tab").forEach(t => t.classList.remove("active"));
+          tab.classList.add("active");
+          initRecapView();
+        }
+      }
+    });
+
     tab.addEventListener("click", () => {
       state.selectedMuscle = m;
       document.querySelectorAll(".muscle-tab").forEach(t => t.classList.remove("active"));
@@ -863,6 +881,22 @@ function initRecapView() {
       const item = document.createElement("div");
       item.className = "overview-item";
       item.style.cursor = "pointer";
+
+      let startX = 0;
+      item.addEventListener("touchstart", (e) => {
+        if (e.touches.length === 1) startX = e.touches[0].clientX;
+      }, { passive: true });
+
+      item.addEventListener("touchend", (e) => {
+        if (e.changedTouches.length === 1) {
+          const deltaX = e.changedTouches[0].clientX - startX;
+          if (deltaX > 35 || Math.abs(deltaX) < 8) { // Swipe right OR tap -> Navigate to Step 3
+            triggerHaptic(5);
+            initWorkoutLoggingView(name);
+          }
+        }
+      });
+
       item.addEventListener("click", () => {
         triggerHaptic(5);
         initWorkoutLoggingView(name);
@@ -1470,19 +1504,7 @@ function appendSetRow(type, values = {}, setNum, isTimedExercise = false) {
     row.appendChild(repsDiv);
   }
 
-  // Delete Action Button
-  const delBtn = document.createElement("button");
-  delBtn.className = "set-delete-btn";
-  delBtn.innerHTML = "🗑";
-  delBtn.type = "button";
-  delBtn.addEventListener("click", () => {
-    triggerHaptic(8);
-    row.remove();
-    reindexSets();
-  });
-  row.appendChild(delBtn);
-
-  // Bind iOS Swipe Set Row Gestures
+  // Bind iOS Swipe Set Row Gestures (Swipe left to delete, swipe right to log)
   initSetRowSwipeActions(row);
 
   container.appendChild(row);
@@ -4785,7 +4807,7 @@ function initSetRowSwipeActions(row) {
   });
 }
 
-// 4. iOS-Style Edge Swipe-Back Gesture
+// 4. iOS-Style Edge Swipe-Back Gesture (Previous page sits underneath current page)
 function initSwipeBackGesture() {
   let startX = 0;
   let currentX = 0;
@@ -4797,6 +4819,21 @@ function initSwipeBackGesture() {
       if (x < 35 && navigationStack.length > 1) {
         startX = x;
         isEdgeSwipe = true;
+
+        // Position previous view directly underneath the current active view
+        const prevViewId = navigationStack[navigationStack.length - 2];
+        const prevView = document.getElementById(prevViewId);
+        if (prevView) {
+          prevView.style.display = "block";
+          prevView.style.position = "fixed";
+          prevView.style.top = "0";
+          prevView.style.left = "0";
+          prevView.style.width = "100%";
+          prevView.style.zIndex = "1";
+          prevView.style.transform = "translateX(-20%) scale(0.96)";
+          prevView.style.filter = "brightness(0.7)";
+          prevView.style.transition = "none";
+        }
       }
     }
   }, { passive: true });
@@ -4808,9 +4845,24 @@ function initSwipeBackGesture() {
 
     if (deltaX > 0) {
       const activeView = document.querySelector(".view.active");
+      const prevViewId = navigationStack[navigationStack.length - 2];
+      const prevView = document.getElementById(prevViewId);
+
+      const progress = Math.min(1, deltaX / window.innerWidth);
+
       if (activeView) {
-        activeView.style.transform = `translateX(${deltaX * 0.8}px)`;
-        activeView.style.opacity = `${1 - deltaX / 400}`;
+        activeView.style.zIndex = "2";
+        activeView.style.transform = `translateX(${deltaX}px)`;
+        activeView.style.boxShadow = "-12px 0 35px rgba(0, 0, 0, 0.6)";
+        activeView.style.transition = "none";
+      }
+
+      if (prevView) {
+        const offset = -20 + (progress * 20);
+        const scale = 0.96 + (progress * 0.04);
+        const brightness = 0.7 + (progress * 0.3);
+        prevView.style.transform = `translateX(${offset}%) scale(${scale})`;
+        prevView.style.filter = `brightness(${brightness})`;
       }
     }
   }, { passive: true });
@@ -4820,21 +4872,63 @@ function initSwipeBackGesture() {
     isEdgeSwipe = false;
     const deltaX = currentX - startX;
     const activeView = document.querySelector(".view.active");
+    const prevViewId = navigationStack[navigationStack.length - 2];
+    const prevView = document.getElementById(prevViewId);
 
     if (activeView) {
-      activeView.style.transition = "transform 0.25s ease-out, opacity 0.25s ease-out";
+      activeView.style.transition = "transform 0.22s ease-out, box-shadow 0.22s ease-out";
+      if (prevView) prevView.style.transition = "transform 0.22s ease-out, filter 0.22s ease-out";
+
       if (deltaX > 90) {
         triggerHaptic(8);
-        const prevViewId = navigationStack.length > 1 ? navigationStack[navigationStack.length - 2] : "view-muscles";
-        switchView(prevViewId);
-      }
-      setTimeout(() => {
-        if (activeView) {
-          activeView.style.transform = "";
-          activeView.style.opacity = "";
-          activeView.style.transition = "";
+        activeView.style.transform = `translateX(${window.innerWidth}px)`;
+        if (prevView) {
+          prevView.style.transform = "translateX(0) scale(1)";
+          prevView.style.filter = "brightness(1)";
         }
-      }, 260);
+        setTimeout(() => {
+          switchView(prevViewId);
+          if (activeView) {
+            activeView.style.transform = "";
+            activeView.style.boxShadow = "";
+            activeView.style.transition = "";
+          }
+          if (prevView) {
+            prevView.style.position = "";
+            prevView.style.top = "";
+            prevView.style.left = "";
+            prevView.style.width = "";
+            prevView.style.zIndex = "";
+            prevView.style.transform = "";
+            prevView.style.filter = "";
+            prevView.style.transition = "";
+          }
+        }, 220);
+      } else {
+        activeView.style.transform = "translateX(0)";
+        if (prevView) {
+          prevView.style.transform = "translateX(-20%) scale(0.96)";
+          prevView.style.filter = "brightness(0.7)";
+        }
+        setTimeout(() => {
+          if (activeView) {
+            activeView.style.transform = "";
+            activeView.style.boxShadow = "";
+            activeView.style.transition = "";
+          }
+          if (prevView) {
+            prevView.style.display = "none";
+            prevView.style.position = "";
+            prevView.style.top = "";
+            prevView.style.left = "";
+            prevView.style.width = "";
+            prevView.style.zIndex = "";
+            prevView.style.transform = "";
+            prevView.style.filter = "";
+            prevView.style.transition = "";
+          }
+        }, 220);
+      }
     }
     startX = 0;
     currentX = 0;
