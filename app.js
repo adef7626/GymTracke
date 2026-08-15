@@ -1218,6 +1218,14 @@ function appendSetRow(type, values = {}, setNum, isTimedExercise = false) {
       : (standardValues.length > 0 ? standardValues[0] : 0);
     input.value = initialVal;
 
+    // Tapping input field pops up the 3D Vertical Wheel Picker
+    input.addEventListener("click", (e) => {
+      e.preventDefault();
+      const isWeight = className.includes("set-weight");
+      const titleText = isWeight ? `Select Weight (${state.unit})` : "Select Reps";
+      openWheelPicker(input, titleText, standardValues);
+    });
+
     // Dark-styled custom up/down spinner buttons
     const spinnerWrap = document.createElement("div");
     spinnerWrap.className = "dark-spin-wrap";
@@ -3614,9 +3622,111 @@ function renderExerciseManagerList(filterText = "") {
   });
 }
 
+/* ==========================================================================
+   3D VERTICAL WHEEL PICKER ENGINE
+   ========================================================================== */
+let activeWheelTargetInput = null;
+let lastWheelCenterIndex = -1;
+
+function openWheelPicker(targetInput, titleText, optionsList) {
+  triggerHaptic(8);
+  activeWheelTargetInput = targetInput;
+
+  const modal = document.getElementById("wheelPickerModal");
+  const titleEl = document.getElementById("wheelPickerTitle");
+  const track = document.getElementById("wheelScrollTrack");
+  const container = document.getElementById("wheelScrollContainer");
+
+  if (!modal || !track || !container) return;
+
+  if (titleEl) titleEl.textContent = titleText;
+  track.innerHTML = "";
+
+  const currVal = Number(targetInput.value) || optionsList[0];
+
+  optionsList.forEach((val, idx) => {
+    const item = document.createElement("div");
+    item.className = "wheel-item";
+    item.textContent = `${val}`;
+    item.dataset.value = val;
+    item.dataset.index = idx;
+
+    item.addEventListener("click", () => {
+      triggerHaptic(5);
+      container.scrollTo({ top: idx * 44, behavior: "smooth" });
+    });
+
+    track.appendChild(item);
+  });
+
+  modal.style.display = "flex";
+
+  // Calculate starting scroll position
+  let initialIndex = optionsList.indexOf(currVal);
+  if (initialIndex === -1) {
+    initialIndex = optionsList.findIndex(v => Number(v) >= currVal);
+    if (initialIndex === -1) initialIndex = 0;
+  }
+  lastWheelCenterIndex = initialIndex;
+
+  setTimeout(() => {
+    container.scrollTop = initialIndex * 44;
+    updateWheelClasses(container, track, optionsList);
+  }, 50);
+
+  // Wheel Scroll Event
+  container.onscroll = () => {
+    updateWheelClasses(container, track, optionsList);
+  };
+}
+
+function updateWheelClasses(container, track, optionsList) {
+  const scrollTop = container.scrollTop;
+  const itemHeight = 44;
+  const centeredIndex = Math.max(0, Math.min(optionsList.length - 1, Math.round(scrollTop / itemHeight)));
+
+  const items = track.querySelectorAll(".wheel-item");
+  items.forEach((item, idx) => {
+    item.classList.remove("active", "adjacent");
+    if (idx === centeredIndex) {
+      item.classList.add("active");
+    } else if (idx === centeredIndex - 1 || idx === centeredIndex + 1) {
+      item.classList.add("adjacent");
+    }
+  });
+
+  if (centeredIndex !== lastWheelCenterIndex) {
+    lastWheelCenterIndex = centeredIndex;
+    triggerHaptic(4); // Tactile haptic tick on every snap!
+    if (activeWheelTargetInput && items[centeredIndex]) {
+      activeWheelTargetInput.value = items[centeredIndex].dataset.value;
+    }
+  }
+}
+
+function closeWheelPicker() {
+  triggerHaptic(5);
+  const modal = document.getElementById("wheelPickerModal");
+  if (modal) modal.style.display = "none";
+  activeWheelTargetInput = null;
+}
+
 function initApp() {
   renderMuscleTabs();
   
+  // Bind Wheel Picker Modal Close Handlers
+  const btnDoneWheel = document.getElementById("btnDoneWheelPicker");
+  if (btnDoneWheel) {
+    btnDoneWheel.addEventListener("click", closeWheelPicker);
+  }
+
+  const modalWheel = document.getElementById("wheelPickerModal");
+  if (modalWheel) {
+    modalWheel.addEventListener("click", (e) => {
+      if (e.target === modalWheel) closeWheelPicker();
+    });
+  }
+
   // Set default mode in selector
   const modeSelect = document.getElementById("modeSelect");
   if (modeSelect) modeSelect.value = state.mode;
