@@ -1280,38 +1280,30 @@ function appendSetRow(type, values = {}, setNum, isTimedExercise = false) {
       }
     }
 
-    // Dark-styled custom up/down spinner buttons
-    const spinnerWrap = document.createElement("div");
-    spinnerWrap.className = "dark-spin-wrap";
+    // In-Place 3D Wheel Activation & Idle Collapse Handlers
+    let collapseTimeout = null;
 
-    const btnUp = document.createElement("button");
-    btnUp.type = "button";
-    btnUp.className = "dark-spin-btn spin-up";
-    btnUp.textContent = "▲";
+    function activateWheel() {
+      if (collapseTimeout) clearTimeout(collapseTimeout);
+      document.querySelectorAll(".inline-wheel-box.is-active").forEach(box => {
+        if (box !== controlBox) box.classList.remove("is-active");
+      });
+      controlBox.classList.add("is-active");
+    }
 
-    const btnDown = document.createElement("button");
-    btnDown.type = "button";
-    btnDown.className = "dark-spin-btn spin-down";
-    btnDown.textContent = "▼";
-
-    spinnerWrap.appendChild(btnUp);
-    spinnerWrap.appendChild(btnDown);
-
-    btnUp.addEventListener("click", (e) => {
-      e.stopPropagation();
-      doIncrement();
-    });
-
-    btnDown.addEventListener("click", (e) => {
-      e.stopPropagation();
-      doDecrement();
-    });
+    function scheduleCollapse() {
+      if (collapseTimeout) clearTimeout(collapseTimeout);
+      collapseTimeout = setTimeout(() => {
+        controlBox.classList.remove("is-active");
+      }, 700);
+    }
 
     // Touch Swipe Gesture for Vertical Drag Scrolling directly inside field
     let startY = 0;
     let accumulatedDelta = 0;
 
     controlBox.addEventListener("touchstart", (e) => {
+      activateWheel();
       if (e.touches.length === 1) {
         startY = e.touches[0].clientY;
         accumulatedDelta = 0;
@@ -1319,6 +1311,7 @@ function appendSetRow(type, values = {}, setNum, isTimedExercise = false) {
     }, { passive: true });
 
     controlBox.addEventListener("touchmove", (e) => {
+      activateWheel();
       if (e.touches.length === 1 && startY !== 0) {
         const currentY = e.touches[0].clientY;
         const delta = startY - currentY; // positive = swiping UP, negative = swiping DOWN
@@ -1339,16 +1332,25 @@ function appendSetRow(type, values = {}, setNum, isTimedExercise = false) {
     controlBox.addEventListener("touchend", () => {
       startY = 0;
       accumulatedDelta = 0;
+      scheduleCollapse();
+    });
+
+    controlBox.addEventListener("click", (e) => {
+      e.stopPropagation();
+      activateWheel();
+      scheduleCollapse();
     });
 
     // Mouse Wheel Scroll Listener for Desktop directly on field
     controlBox.addEventListener("wheel", (e) => {
       e.preventDefault();
+      activateWheel();
       if (e.deltaY < 0) {
         doIncrement();
       } else if (e.deltaY > 0) {
         doDecrement();
       }
+      scheduleCollapse();
     }, { passive: false });
 
     // Initial drum render
@@ -1357,7 +1359,6 @@ function appendSetRow(type, values = {}, setNum, isTimedExercise = false) {
     controlBox.appendChild(lens);
     controlBox.appendChild(drum);
     controlBox.appendChild(input);
-    controlBox.appendChild(spinnerWrap);
 
     wrapper.appendChild(controlBox);
     return wrapper;
@@ -3664,6 +3665,13 @@ function renderExerciseManagerList(filterText = "") {
 
 function initApp() {
   renderMuscleTabs();
+
+  // Global document click listener to collapse active wheel boxes
+  document.addEventListener("click", () => {
+    document.querySelectorAll(".inline-wheel-box.is-active").forEach(box => {
+      box.classList.remove("is-active");
+    });
+  });
 
   // Set default mode in selector
   const modeSelect = document.getElementById("modeSelect");

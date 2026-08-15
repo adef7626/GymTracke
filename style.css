@@ -3775,34 +3775,19 @@ input[type=number]::-webkit-outer-spin-button {
    ========================================================================== */
 .inline-wheel-box {
   position: relative;
-  height: 68px;
+  height: 38px;
   width: 100%;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
-  overflow: hidden;
+  overflow: visible;
   user-select: none;
   touch-action: none;
   cursor: pointer;
   padding: 0 4px;
-}
-
-.inline-wheel-lens {
-  position: absolute;
-  top: 50%;
-  left: 4px;
-  right: 28px;
-  transform: translateY(-50%);
-  height: 24px;
-  background: rgba(255, 140, 26, 0.12);
-  border-top: 1px solid var(--accent);
-  border-bottom: 1px solid var(--accent);
-  border-radius: 6px;
-  pointer-events: none;
-  z-index: 1;
-  box-shadow: 0 0 10px rgba(255, 140, 26, 0.15);
+  transition: border-color 0.2s, background 0.2s;
 }
 
 .inline-wheel-drum {
@@ -3824,49 +3809,90 @@ input[type=number]::-webkit-outer-spin-button {
   transition: all 0.12s ease-out;
 }
 
-.inline-wheel-num.prev {
+/* Resting State: Top & Bottom blurred numbers hidden */
+.inline-wheel-num.prev,
+.inline-wheel-num.next {
+  display: none;
   height: 18px;
   font-size: 0.7rem;
   font-weight: 600;
   color: var(--text-muted);
-  opacity: 0.45;
+  opacity: 0;
   filter: blur(0.6px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .inline-wheel-num.curr {
-  height: 24px;
+  height: 38px;
   font-size: 1.05rem;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--accent);
   opacity: 1;
-  filter: blur(0);
-  text-shadow: 0 0 8px var(--accent-glow);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.inline-wheel-num.next {
-  height: 18px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--text-muted);
+.inline-wheel-lens {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  right: 4px;
+  transform: translateY(-50%);
+  height: 24px;
+  background: rgba(255, 140, 26, 0.12);
+  border-top: 1px solid var(--accent);
+  border-bottom: 1px solid var(--accent);
+  border-radius: 6px;
+  pointer-events: none;
+  z-index: 1;
+  box-shadow: 0 0 12px rgba(255, 140, 26, 0.2);
+}
+
+/* TOUCHED / ACTIVE STATE: 3D Wheel Drum expands in-place as a floating popover */
+.inline-wheel-box.is-active {
+  z-index: 100;
+}
+
+.inline-wheel-box.is-active .inline-wheel-drum {
+  position: absolute;
+  top: -16px;
+  left: 0;
+  right: 0;
+  height: 70px;
+  background: rgba(14, 15, 26, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.9), 0 0 15px rgba(255, 140, 26, 0.2);
+  padding: 4px 0;
+  z-index: 5;
+}
+
+.inline-wheel-box.is-active .inline-wheel-lens {
+  display: block;
+  z-index: 6;
+}
+
+.inline-wheel-box.is-active .inline-wheel-num.prev {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   opacity: 0.45;
-  filter: blur(0.6px);
+}
+
+.inline-wheel-box.is-active .inline-wheel-num.next {
   display: flex;
   align-items: center;
   justify-content: center;
+  opacity: 0.45;
 }
 
-/* Right side dark spinner wrapper inside inline box */
-.inline-wheel-box .dark-spin-wrap {
-  position: relative;
-  z-index: 3;
-  height: 60px;
-  width: 22px;
+.inline-wheel-box.is-active .inline-wheel-num.curr {
+  height: 24px;
+  font-weight: 800;
+  text-shadow: 0 0 10px var(--accent-glow);
 }
 
 .set-row-complete .inline-wheel-box {
