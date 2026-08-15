@@ -1198,33 +1198,87 @@ function appendSetRow(type, values = {}, setNum, isTimedExercise = false) {
   row.className = "set-row";
   row.dataset.setNum = setNum;
 
-  // Helper to create a Stepper & Vertical Scroll Control Box with [ number ] [▲▼]
+  // Helper to create an In-Place Inline 3D Cyber Wheel Field (No Keyboard / No Bottom Popup Sheet)
   function createScrollPicker(className, standardValues, currentValue, unit, step = 1) {
     const wrapper = document.createElement("div");
     wrapper.className = "set-scroll-group";
 
-    // Value Display Box with Stepper Controls & Vertical Scroll
+    // Inline Wheel Field Container
     const controlBox = document.createElement("div");
-    controlBox.className = "picker-control-box";
+    controlBox.className = "inline-wheel-box";
 
+    // Center Lens Highlight Box
+    const lens = document.createElement("div");
+    lens.className = "inline-wheel-lens";
+
+    // 3-Line Drum Display (Top, Center, Bottom)
+    const drum = document.createElement("div");
+    drum.className = "inline-wheel-drum";
+
+    const prevEl = document.createElement("span");
+    prevEl.className = "inline-wheel-num prev";
+
+    const currEl = document.createElement("span");
+    currEl.className = "inline-wheel-num curr";
+
+    const nextEl = document.createElement("span");
+    nextEl.className = "inline-wheel-num next";
+
+    drum.appendChild(prevEl);
+    drum.appendChild(currEl);
+    drum.appendChild(nextEl);
+
+    // Hidden input for value storage (No keyboard, no manual text input)
     const input = document.createElement("input");
     input.type = "number";
     input.className = `picker-value-input ${className}`;
-    input.step = (unit === "kg" || className === "set-weight") ? (state.unit === "kg" ? "2.5" : "5") : "1";
-    input.min = "0";
+    input.readOnly = true;
+    input.setAttribute("inputmode", "none");
+    input.setAttribute("tabindex", "-1");
+    input.style.display = "none";
 
-    const initialVal = (currentValue !== undefined && currentValue !== null && currentValue !== "")
+    let currVal = (currentValue !== undefined && currentValue !== null && currentValue !== "")
       ? Number(currentValue)
       : (standardValues.length > 0 ? standardValues[0] : 0);
-    input.value = initialVal;
+    
+    let currentIndex = standardValues.indexOf(currVal);
+    if (currentIndex === -1) {
+      currentIndex = standardValues.findIndex(v => Number(v) >= currVal);
+      if (currentIndex === -1) currentIndex = 0;
+    }
 
-    // Tapping input field pops up the 3D Vertical Wheel Picker
-    input.addEventListener("click", (e) => {
-      e.preventDefault();
-      const isWeight = className.includes("set-weight");
-      const titleText = isWeight ? `Select Weight (${state.unit})` : "Select Reps";
-      openWheelPicker(input, titleText, standardValues);
-    });
+    function renderDrum() {
+      const activeVal = standardValues[currentIndex];
+      input.value = activeVal;
+
+      const prevVal = currentIndex > 0 ? standardValues[currentIndex - 1] : "";
+      const nextVal = currentIndex < standardValues.length - 1 ? standardValues[currentIndex + 1] : "";
+
+      prevEl.textContent = prevVal !== "" ? `${prevVal}` : "";
+      currEl.textContent = `${activeVal}`;
+      nextEl.textContent = nextVal !== "" ? `${nextVal}` : "";
+    }
+
+    function setIndex(newIdx) {
+      if (newIdx < 0 || newIdx >= standardValues.length) return;
+      if (newIdx !== currentIndex) {
+        currentIndex = newIdx;
+        triggerHaptic(4);
+        renderDrum();
+      }
+    }
+
+    function doIncrement() {
+      if (currentIndex < standardValues.length - 1) {
+        setIndex(currentIndex + 1);
+      }
+    }
+
+    function doDecrement() {
+      if (currentIndex > 0) {
+        setIndex(currentIndex - 1);
+      }
+    }
 
     // Dark-styled custom up/down spinner buttons
     const spinnerWrap = document.createElement("div");
@@ -1243,25 +1297,6 @@ function appendSetRow(type, values = {}, setNum, isTimedExercise = false) {
     spinnerWrap.appendChild(btnUp);
     spinnerWrap.appendChild(btnDown);
 
-    const getStepVal = () => (unit === "kg" || className === "set-weight") ? (state.unit === "kg" ? 2.5 : 5) : step;
-
-    function doIncrement() {
-      triggerHaptic(5);
-      const curr = Number(input.value) || 0;
-      const stepVal = getStepVal();
-      const newVal = Math.round((curr + stepVal) * 10) / 10;
-      input.value = newVal;
-    }
-
-    function doDecrement() {
-      triggerHaptic(5);
-      const curr = Number(input.value) || 0;
-      const stepVal = getStepVal();
-      const newVal = Math.max(0, Math.round((curr - stepVal) * 10) / 10);
-      input.value = newVal;
-    }
-
-    // Button Click Listeners
     btnUp.addEventListener("click", (e) => {
       e.stopPropagation();
       doIncrement();
@@ -1272,7 +1307,7 @@ function appendSetRow(type, values = {}, setNum, isTimedExercise = false) {
       doDecrement();
     });
 
-    // Touch Swipe Gesture for Vertical Drag Scrolling on Mobile
+    // Touch Swipe Gesture for Vertical Drag Scrolling directly inside field
     let startY = 0;
     let accumulatedDelta = 0;
 
@@ -1290,7 +1325,7 @@ function appendSetRow(type, values = {}, setNum, isTimedExercise = false) {
         accumulatedDelta += delta;
         startY = currentY;
 
-        const threshold = 12; // 12px vertical swipe distance per step tick
+        const threshold = 14; // 14px vertical swipe distance per step tick
         if (accumulatedDelta >= threshold) {
           doIncrement();
           accumulatedDelta = 0;
@@ -1306,7 +1341,7 @@ function appendSetRow(type, values = {}, setNum, isTimedExercise = false) {
       accumulatedDelta = 0;
     });
 
-    // Mouse Wheel Scroll Listener for Desktop
+    // Mouse Wheel Scroll Listener for Desktop directly on field
     controlBox.addEventListener("wheel", (e) => {
       e.preventDefault();
       if (e.deltaY < 0) {
@@ -1316,6 +1351,11 @@ function appendSetRow(type, values = {}, setNum, isTimedExercise = false) {
       }
     }, { passive: false });
 
+    // Initial drum render
+    renderDrum();
+
+    controlBox.appendChild(lens);
+    controlBox.appendChild(drum);
     controlBox.appendChild(input);
     controlBox.appendChild(spinnerWrap);
 
@@ -3622,110 +3662,8 @@ function renderExerciseManagerList(filterText = "") {
   });
 }
 
-/* ==========================================================================
-   3D VERTICAL WHEEL PICKER ENGINE
-   ========================================================================== */
-let activeWheelTargetInput = null;
-let lastWheelCenterIndex = -1;
-
-function openWheelPicker(targetInput, titleText, optionsList) {
-  triggerHaptic(8);
-  activeWheelTargetInput = targetInput;
-
-  const modal = document.getElementById("wheelPickerModal");
-  const titleEl = document.getElementById("wheelPickerTitle");
-  const track = document.getElementById("wheelScrollTrack");
-  const container = document.getElementById("wheelScrollContainer");
-
-  if (!modal || !track || !container) return;
-
-  if (titleEl) titleEl.textContent = titleText;
-  track.innerHTML = "";
-
-  const currVal = Number(targetInput.value) || optionsList[0];
-
-  optionsList.forEach((val, idx) => {
-    const item = document.createElement("div");
-    item.className = "wheel-item";
-    item.textContent = `${val}`;
-    item.dataset.value = val;
-    item.dataset.index = idx;
-
-    item.addEventListener("click", () => {
-      triggerHaptic(5);
-      container.scrollTo({ top: idx * 44, behavior: "smooth" });
-    });
-
-    track.appendChild(item);
-  });
-
-  modal.style.display = "flex";
-
-  // Calculate starting scroll position
-  let initialIndex = optionsList.indexOf(currVal);
-  if (initialIndex === -1) {
-    initialIndex = optionsList.findIndex(v => Number(v) >= currVal);
-    if (initialIndex === -1) initialIndex = 0;
-  }
-  lastWheelCenterIndex = initialIndex;
-
-  setTimeout(() => {
-    container.scrollTop = initialIndex * 44;
-    updateWheelClasses(container, track, optionsList);
-  }, 50);
-
-  // Wheel Scroll Event
-  container.onscroll = () => {
-    updateWheelClasses(container, track, optionsList);
-  };
-}
-
-function updateWheelClasses(container, track, optionsList) {
-  const scrollTop = container.scrollTop;
-  const itemHeight = 44;
-  const centeredIndex = Math.max(0, Math.min(optionsList.length - 1, Math.round(scrollTop / itemHeight)));
-
-  const items = track.querySelectorAll(".wheel-item");
-  items.forEach((item, idx) => {
-    item.classList.remove("active", "adjacent");
-    if (idx === centeredIndex) {
-      item.classList.add("active");
-    } else if (idx === centeredIndex - 1 || idx === centeredIndex + 1) {
-      item.classList.add("adjacent");
-    }
-  });
-
-  if (centeredIndex !== lastWheelCenterIndex) {
-    lastWheelCenterIndex = centeredIndex;
-    triggerHaptic(4); // Tactile haptic tick on every snap!
-    if (activeWheelTargetInput && items[centeredIndex]) {
-      activeWheelTargetInput.value = items[centeredIndex].dataset.value;
-    }
-  }
-}
-
-function closeWheelPicker() {
-  triggerHaptic(5);
-  const modal = document.getElementById("wheelPickerModal");
-  if (modal) modal.style.display = "none";
-  activeWheelTargetInput = null;
-}
-
 function initApp() {
   renderMuscleTabs();
-  
-  // Bind Wheel Picker Modal Close Handlers
-  const btnDoneWheel = document.getElementById("btnDoneWheelPicker");
-  if (btnDoneWheel) {
-    btnDoneWheel.addEventListener("click", closeWheelPicker);
-  }
-
-  const modalWheel = document.getElementById("wheelPickerModal");
-  if (modalWheel) {
-    modalWheel.addEventListener("click", (e) => {
-      if (e.target === modalWheel) closeWheelPicker();
-    });
-  }
 
   // Set default mode in selector
   const modeSelect = document.getElementById("modeSelect");

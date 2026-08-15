@@ -3771,168 +3771,107 @@ input[type=number]::-webkit-outer-spin-button {
 }
 
 /* ==========================================================================
-   3D VERTICAL WHEEL PICKER MODAL (iOS Drum-Style Wheel with Blur & Snap)
+   IN-PLACE INLINE 3D WHEEL FIELD FOR WEIGHT & REPS (NO KEYBOARD / NO MODAL)
    ========================================================================== */
-.wheel-picker-sheet {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 500px;
-  background: rgba(14, 15, 26, 0.98);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top-left-radius: var(--radius-lg);
-  border-top-right-radius: var(--radius-lg);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-bottom: none;
-  padding: 16px 20px calc(20px + env(safe-area-inset-bottom, 10px));
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.7);
-  z-index: 9999;
-  animation: slideUpSheet 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes slideUpSheet {
-  from { transform: translate(-50%, 100%); }
-  to { transform: translate(-50%, 0); }
-}
-
-.wheel-picker-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 14px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.wheel-picker-title {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--accent);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.wheel-picker-body {
+.inline-wheel-box {
   position: relative;
-  height: 220px;
+  height: 68px;
   width: 100%;
-  overflow: hidden;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
   display: flex;
-  justify-content: center;
   align-items: center;
+  overflow: hidden;
+  user-select: none;
+  touch-action: none;
+  cursor: pointer;
+  padding: 0 4px;
 }
 
-/* Center Highlight Lens Box (compact 120px width matching number size + 10% padding) */
-.wheel-lens-highlight {
+.inline-wheel-lens {
   position: absolute;
   top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 120px;
-  height: 44px;
+  left: 4px;
+  right: 28px;
+  transform: translateY(-50%);
+  height: 24px;
   background: rgba(255, 140, 26, 0.12);
-  border-top: 1.5px solid var(--accent);
-  border-bottom: 1.5px solid var(--accent);
-  border-radius: 8px;
+  border-top: 1px solid var(--accent);
+  border-bottom: 1px solid var(--accent);
+  border-radius: 6px;
   pointer-events: none;
-  z-index: 2;
-  box-shadow: 0 0 15px rgba(255, 140, 26, 0.15);
-}
-
-/* Top & Bottom Fade & Blur Masks (matching 120px width) */
-.wheel-fade-top {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 120px;
-  height: 88px;
-  background: linear-gradient(180deg, rgba(14, 15, 26, 0.96) 0%, rgba(14, 15, 26, 0.4) 70%, rgba(14, 15, 26, 0) 100%);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-  pointer-events: none;
-  z-index: 3;
-}
-
-.wheel-fade-bottom {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 120px;
-  height: 88px;
-  background: linear-gradient(0deg, rgba(14, 15, 26, 0.96) 0%, rgba(14, 15, 26, 0.4) 70%, rgba(14, 15, 26, 0) 100%);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-  pointer-events: none;
-  z-index: 3;
-}
-
-/* Scroll Container & Track (Compact 120px centered drum column) */
-.wheel-scroll-container {
-  width: 120px;
-  height: 220px;
-  overflow-y: auto;
-  scroll-snap-type: y mandatory;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  position: relative;
   z-index: 1;
+  box-shadow: 0 0 10px rgba(255, 140, 26, 0.15);
 }
 
-.wheel-scroll-container::-webkit-scrollbar {
-  display: none;
-}
-
-.wheel-scroll-track {
+.inline-wheel-drum {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 88px; /* Offset so first item centers in lens */
-  padding-bottom: 88px; /* Offset so last item centers in lens */
+  justify-content: center;
+  height: 100%;
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
 }
 
-.wheel-item {
-  height: 44px;
+.inline-wheel-num {
   width: 100%;
+  text-align: center;
+  line-height: 1;
+  transition: all 0.12s ease-out;
+}
+
+.inline-wheel-num.prev {
+  height: 18px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  opacity: 0.45;
+  filter: blur(0.6px);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  scroll-snap-align: center;
-  cursor: pointer;
-  user-select: none;
-  transition: all 0.15s ease-out;
-  opacity: 0.35;
-  filter: blur(1.5px);
-  transform: scale(0.85);
-  padding: 0 10%;
 }
 
-/* Focused / Centered Active Item */
-.wheel-item.active {
-  font-size: 1.5rem;
+.inline-wheel-num.curr {
+  height: 24px;
+  font-size: 1.05rem;
   font-weight: 800;
   color: var(--accent);
   opacity: 1;
   filter: blur(0);
-  transform: scale(1.1);
-  text-shadow: 0 0 12px var(--accent-glow);
+  text-shadow: 0 0 8px var(--accent-glow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* Immediately Adjacent Items (One above, one below) */
-.wheel-item.adjacent {
-  font-size: 1.2rem;
+.inline-wheel-num.next {
+  height: 18px;
+  font-size: 0.7rem;
   font-weight: 600;
-  color: var(--text-main);
-  opacity: 0.65;
-  filter: blur(0.5px);
-  transform: scale(0.95);
+  color: var(--text-muted);
+  opacity: 0.45;
+  filter: blur(0.6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Right side dark spinner wrapper inside inline box */
+.inline-wheel-box .dark-spin-wrap {
+  position: relative;
+  z-index: 3;
+  height: 60px;
+  width: 22px;
+}
+
+.set-row-complete .inline-wheel-box {
+  opacity: 0.45;
+  pointer-events: none;
 }
 
 

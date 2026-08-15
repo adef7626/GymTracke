@@ -514,25 +514,18 @@
       </div>
     </div>
 
-    <!-- 3D VERTICAL WHEEL PICKER MODAL -->
-    <div id="wheelPickerModal" class="modal-backdrop" style="display:none;">
-      <div class="wheel-picker-sheet">
-        <div class="wheel-picker-header">
-          <span id="wheelPickerTitle" class="wheel-picker-title">Select Weight (kg)</span>
-          <button id="btnDoneWheelPicker" class="btn btn-primary btn-sm btn-rect">Done ✓</button>
-        </div>
-        
-        <div class="wheel-picker-body">
-          <!-- Top & Bottom gradient overlay masks for 3D depth and blur effect -->
-          <div class="wheel-fade-top"></div>
-          <div class="wheel-lens-highlight"></div>
-          <div class="wheel-fade-bottom"></div>
-          
-          <!-- Scrollable vertical wheel drum container -->
-          <div id="wheelScrollContainer" class="wheel-scroll-container">
-            <div id="wheelScrollTrack" class="wheel-scroll-track"></div>
-          </div>
-        </div>
+    <!-- Floating iOS Install PWA Banner -->
+    <div id="iosInstallBanner" class="ios-install-banner" style="display:none;">
+      <div class="ios-install-banner-content">
+        <button id="btnCloseInstallBanner" class="ios-install-close-btn">&times;</button>
+        <div class="ios-install-title">📲 Install Adrenaline Forge</div>
+        <p class="ios-install-text">
+          Add this application to your Home Screen to unlock a full-screen, offline-enabled native experience:
+        </p>
+        <ol class="ios-install-steps">
+          <li>Tap the <strong>Share</strong> button <span class="ios-share-icon">⎋</span> at the bottom of Safari.</li>
+          <li>Scroll down and select <strong>Add to Home Screen</strong> <span class="ios-plus-icon">⊕</span>.</li>
+        </ol>
       </div>
     </div>
   </div>
